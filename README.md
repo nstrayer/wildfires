@@ -1,9 +1,3 @@
-# A Template for d3 visualizations: 
+# Where are wildfires happening?
 
-I spend way to much time setting up the actual environment for each visualization I make. 
-
-## Includes: 
-- D3
-- Bootstrap
-- My google tracking code
-- JQuery
+A visualization of current wildfires around the world. 
