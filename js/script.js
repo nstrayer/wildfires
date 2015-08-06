@@ -69,7 +69,6 @@ function ready(error, topology, fires){
         context.closePath();
     })
 
-    console.log(fires.length)
     var countries = topojson.feature(topology, topology.objects.countries).features
     g.selectAll("path")
           .data(countries)
@@ -77,5 +76,5 @@ function ready(error, topology, fires){
           .append("path")
           .attr("d", path)
 
-    svg.call(zoom);
+    canvas.call(zoom);
 }
