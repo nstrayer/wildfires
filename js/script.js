@@ -13,14 +13,16 @@ var svg = d3.select("#viz").append("svg")
     .attr("width", width)
     .attr("height", height)
 
+var canvas = d3.select('#viz').append("canvas")
+    .attr("width", width)
+    .attr("height", height)
+
+var context = canvas.node().getContext("2d");
+
 var projection = d3.geo.albers()
     .scale(width*0.95)
     .translate([ width/ 2, height / 2]);
 
-// var projection = d3.geo.mercator()
-//     .center([0, 5 ])
-//     .scale(200)
-//     .rotate([-180,0]);
 
 var path = d3.geo.path()
     .projection(projection);
@@ -52,6 +54,13 @@ function ready(error, us, fires){
     fires.forEach(function(d){
         d.latitude = +d.latitude
         d.longitude = +d.longitude
+        var proj = projection([d.longitude,d.latitude])
+
+        context.beginPath();
+        context.rect(proj[0], proj[1], 10, 10);
+        context.fillStyle="red";
+        context.fill();
+        context.closePath();
     })
 
     g.append("g")
@@ -67,32 +76,32 @@ function ready(error, us, fires){
       .attr("d", path);
 
 
-    g.selectAll("circle")
-        .data(fires).enter()
-        .append("circle")
-        .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
-        .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-        .attr("r", 5)
-        .attr("fill", "red")
-        .attr("fill-opacity", "0.5")
-        .each(pulse)
+    // g.selectAll("circle")
+    //     .data(fires).enter()
+    //     .append("circle")
+    //     .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
+    //     .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
+    //     .attr("r", 5)
+    //     .attr("fill", "red")
+    //     .attr("fill-opacity", "0.5")
+    //     // .each(pulse)
 
     svg.call(zoom);
 }
 
-function pulse(d,i) {
-    var circle = d3.select(this);
-    (function repeat() {
-        circle = circle.transition()
-            .duration(500)
-            .attr("stroke-width", 20)
-            .attr("r", 3)
-            .transition()
-            .ease('linear')
-            .duration(500)
-            .attr('stroke-width', 0.5)
-            .attr("r", 10)
-            .ease('linear')
-            .each("end", repeat);
-    })();
-}
+// function pulse(d,i) {
+//     var circle = d3.select(this);
+//     (function repeat() {
+//         circle = circle.transition()
+//             .duration(500)
+//             .attr("stroke-width", 20)
+//             .attr("r", 3)
+//             .transition()
+//             .ease('linear')
+//             .duration(500)
+//             .attr('stroke-width', 0.5)
+//             .attr("r", 10)
+//             .ease('linear')
+//             .each("end", repeat);
+//     })();
+// }
