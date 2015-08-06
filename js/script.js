@@ -19,10 +19,16 @@ var canvas = d3.select('#viz').append("canvas")
 
 var context = canvas.node().getContext("2d");
 
-var projection = d3.geo.albers()
-    .scale(width*0.95)
-    .translate([ width/ 2, height / 2]);
+// var projection = d3.geo.mercator()
+//     .center([0, 5 ])
+//     .scale(150)
+//     .rotate([-180,0]);
 
+var projection = d3.geo.orthographic()
+    .scale(320)
+    .translate([width / 2, height / 2])
+    .clipAngle(90)
+    .precision(.1);
 
 var path = d3.geo.path()
     .projection(projection);
@@ -37,19 +43,18 @@ var zoom = d3.behavior.zoom()
             .attr("r", 5/zoom.scale());
         g.selectAll("path")
             .attr("d", path.projection(projection));
-
   });
 
 var g = svg.append("g");
 
 //Set up the queue so that all the stuff shows up at the same time. Also, the code is cleaner
 queue()
-    .defer(d3.json,"data/us-10m.json")
-    .defer(d3.csv,"data/fires.csv")
+    .defer(d3.json,"data/world-110m2.json")
+    .defer(d3.csv,"data/world.csv")
     .await(ready);
 
 //define the function that gets run when the data are loaded.
-function ready(error, us, fires){
+function ready(error, topology, fires){
 
     fires.forEach(function(d){
         d.latitude = +d.latitude
@@ -57,51 +62,20 @@ function ready(error, us, fires){
         var proj = projection([d.longitude,d.latitude])
 
         context.beginPath();
-        context.rect(proj[0], proj[1], 10, 10);
+        context.arc(proj[0], proj[1],2, 0,2*Math.PI);
+        context.globalAlpha = 0.4;
         context.fillStyle="red";
         context.fill();
         context.closePath();
     })
 
-    g.append("g")
-          .attr("id", "states")
-        .selectAll("path")
-          .data(topojson.feature(us, us.objects.states).features)
-        .enter().append("path")
+    console.log(fires.length)
+    var countries = topojson.feature(topology, topology.objects.countries).features
+    g.selectAll("path")
+          .data(countries)
+        .enter()
+          .append("path")
           .attr("d", path)
-
-    g.append("path")
-      .datum(topojson.mesh(us, us.objects.states))
-      .attr("id", "state-borders")
-      .attr("d", path);
-
-
-    // g.selectAll("circle")
-    //     .data(fires).enter()
-    //     .append("circle")
-    //     .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
-    //     .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-    //     .attr("r", 5)
-    //     .attr("fill", "red")
-    //     .attr("fill-opacity", "0.5")
-    //     // .each(pulse)
 
     svg.call(zoom);
 }
-
-// function pulse(d,i) {
-//     var circle = d3.select(this);
-//     (function repeat() {
-//         circle = circle.transition()
-//             .duration(500)
-//             .attr("stroke-width", 20)
-//             .attr("r", 3)
-//             .transition()
-//             .ease('linear')
-//             .duration(500)
-//             .attr('stroke-width', 0.5)
-//             .attr("r", 10)
-//             .ease('linear')
-//             .each("end", repeat);
-//     })();
-// }
