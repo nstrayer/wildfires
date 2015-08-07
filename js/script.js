@@ -52,7 +52,7 @@ var g = svg.append("g");
 //Set up the queue so that all the stuff shows up at the same time. Also, the code is cleaner
 queue()
     .defer(d3.json,"data/world-110m2.json")
-    .defer(d3.csv,"data/world.csv")
+    .defer(d3.csv,"data/fires.csv")
     .await(ready);
 
 //define the function that gets run when the data are loaded.
