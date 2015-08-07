@@ -27,7 +27,7 @@ var context = canvas.node().getContext("2d");
 //     .rotate([-180,0]);
 
 var projection = d3.geo.orthographic()
-    .scale(320)
+    .scale(400)
     .translate([width / 2, height / 2])
     .clipAngle(90)
     .rotate([90,-35,8])
