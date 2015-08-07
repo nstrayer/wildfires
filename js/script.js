@@ -22,10 +22,14 @@ var canvas = d3.select('#viz').append("canvas")
 var context = canvas.node().getContext("2d");
 
 // var projection = d3.geo.mercator()
-//     .center([0, 5 ])
+//     .center([0, 5])
 //     .scale(150)
 //     .rotate([-180,0]);
 
+// var projection = d3.geo.albers()
+//     .scale(1000)
+//     .translate([width / 2, height / 2]);
+//
 var projection = d3.geo.orthographic()
     .scale(400)
     .translate([width / 2, height / 2])
@@ -45,14 +49,14 @@ var projection = d3.geo.orthographic()
 var path = d3.geo.path()
     .projection(projection);
 
+var energy = d3.scale.linear()
+  .range([5,15])
+
 // zoom and pan
 var zoom = d3.behavior.zoom()
     .on("zoom",function() {
         g.attr("transform","translate("+
             d3.event.translate.join(",")+")scale("+d3.event.scale+")");
-        g.selectAll("circle")
-            .attr("d", path.projection(projection))
-            .attr("r", 5/zoom.scale());
         g.selectAll("path")
             .attr("d", path.projection(projection));
   });
@@ -68,10 +72,19 @@ queue()
 //define the function that gets run when the data are loaded.
 function ready(error, topology, fires){
 
+    sureFires = []
     fires.forEach(function(d){
         d.latitude = +d.latitude
         d.longitude = +d.longitude
+        d.confidence = +d.confidence
+        d.frp = +d.frp
+
+        if (d.confidence > 90 && d.frp > 200){
+          sureFires.push(d)
+        }
     })
+    fires = sureFires
+    energy.domain(d3.extent(fires, function(d){return d.frp}))
 
     drawCanvas(fires);
 
@@ -93,7 +106,7 @@ function ready(error, topology, fires){
 
       }));
 
-    // svg.call(zoom);
+    // canvas.call(zoom);
 }
 
 function drawCanvas(data) {
@@ -107,7 +120,7 @@ function drawCanvas(data) {
       proj = projection([d.longitude,d.latitude])
 
       context.beginPath();
-      context.arc(proj[0], proj[1],2, 0,2*Math.PI);
+      context.arc(proj[0], proj[1], energy(d.frp), 0,2*Math.PI);
       context.globalAlpha = 0.4;
       context.fillStyle="red";
       context.fill();
