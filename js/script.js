@@ -7,7 +7,9 @@ d3.selection.prototype.moveToFront = function() {
 var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     height = $(window).height() - 85,
     padding = 20,
-    firstTime = true;
+    firstTime = true,
+    sens = 0.25,
+    proj;
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
@@ -59,15 +61,9 @@ function ready(error, topology, fires){
     fires.forEach(function(d){
         d.latitude = +d.latitude
         d.longitude = +d.longitude
-        var proj = projection([d.longitude,d.latitude])
-
-        context.beginPath();
-        context.arc(proj[0], proj[1],2, 0,2*Math.PI);
-        context.globalAlpha = 0.4;
-        context.fillStyle="red";
-        context.fill();
-        context.closePath();
     })
+
+    drawCanvas(fires);
 
     var countries = topojson.feature(topology, topology.objects.countries).features
     g.selectAll("path")
@@ -76,5 +72,33 @@ function ready(error, topology, fires){
           .append("path")
           .attr("d", path)
 
-    canvas.call(zoom);
+
+    canvas.call(d3.behavior.drag()
+      .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
+      .on("drag", function() {
+        var rotate = projection.rotate();
+        projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
+        g.selectAll("path").attr("d", path);
+        drawCanvas(fires);
+
+      }));
+}
+
+function drawCanvas(data) {
+
+  // clear canvas
+  context.fillStyle = "#fff";
+  context.clearRect(0,0,canvas.attr("width"),canvas.attr("height"));
+  context.fill();
+
+  data.forEach(function(d){
+      proj = projection([d.longitude,d.latitude])
+
+      context.beginPath();
+      context.arc(proj[0], proj[1],2, 0,2*Math.PI);
+      context.globalAlpha = 0.4;
+      context.fillStyle="red";
+      context.fill();
+      context.closePath();
+  })
 }
