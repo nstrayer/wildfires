@@ -49,6 +49,8 @@ var projection = d3.geo.orthographic()
 var path = d3.geo.path()
     .projection(projection);
 
+var circle = d3.geo.circle();
+
 var energy = d3.scale.linear()
   .range([5,20])
 
@@ -68,13 +70,13 @@ var g = svg.append("g");
 
 //Set up the queue so that all the stuff shows up at the same time. Also, the code is cleaner
 queue()
-    .defer(d3.json,"data/us-10m.json")
+    .defer(d3.json,"data/world-110m2.json")
     .defer(d3.csv,"data/world.csv")
     // .defer(d3.csv, "https://firms.modaps.eosdis.nasa.gov/active_fire/text/Global_24h.csv")
     .await(ready);
 
 //define the function that gets run when the data are loaded.
-function ready(error, us, fires){
+function ready(error, topology, fires){
 
     sureFires = []
     fires.forEach(function(d){
@@ -93,17 +95,13 @@ function ready(error, us, fires){
     console.log(fires.length)
     // drawCanvas(fires);
 
-    g.append("g")
-      .attr("id", "states")
-    .selectAll("path")
-      .data(topojson.feature(us, us.objects.states).features)
-    .enter().append("path")
-      .attr("d", path)
 
-    g.append("path")
-      .datum(topojson.mesh(us, us.objects.states))
-      .attr("id", "state-borders")
-      .attr("d", path);
+    var countries = topojson.feature(topology, topology.objects.countries).features
+    g.selectAll("path")
+          .data(countries)
+        .enter()
+          .append("path")
+          .attr("d", path)
 
     g.selectAll("circle")
       .data(fires).enter()
@@ -113,6 +111,31 @@ function ready(error, us, fires){
       .attr("r", function(d){return energy(d.frp)})
       .attr("fill", "red")
       .attr("fill-opacity", "0.2")
+
+
+//Special geo circles!
+    // g.selectAll(".point")
+    //   .data(fires)
+    // .enter().append("path")
+    //   .datum(function(d) {
+    //      return circle
+    //          .origin(projection([d.longitude,d.latitude]))
+    //          .angle(energy(d.frp))();
+    //   })
+    //   .attr("class", "point")
+    //   .attr("d", path);
+
+    //
+    // g.selectAll("path.point")
+    //   .data(fires)
+    // .enter().append("path")
+    //   .datum(function(d) {
+    //      return {type: "Point", coordinates: projection([d.longitude, d.latitude]), radius: d.Magnitude};
+    //   })
+    //   .attr("class", "point")
+    //   .style("fill", "red")
+    //   .attr("d", path);
+
 
     canvas.call(d3.behavior.drag()
       .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
@@ -124,7 +147,7 @@ function ready(error, us, fires){
         .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
         .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
         .attr("r", function(d){return energy(d.frp)})
-        drawCanvas(fires);
+        // drawCanvas(fires);
 
       }));
 
