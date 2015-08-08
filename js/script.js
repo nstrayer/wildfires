@@ -9,7 +9,8 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     padding = 20,
     firstTime = true,
     sens = 0.25,
-    proj;
+    proj,
+    countries;
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
@@ -21,14 +22,24 @@ var canvas = d3.select('#viz').append("canvas")
 
 var context = canvas.node().getContext("2d");
 
-// var projection = d3.geo.mercator()
-//     .center([0, 5])
-//     .scale(150)
-//     .rotate([-180,0]);
+var projections = {
+  mercator: d3.geo.mercator()
+        .center([0, 5])
+        .scale(150)
+        .rotate([-180,0]),
 
-// var projection = d3.geo.albers()
-//     .scale(1000)
-//     .translate([width / 2, height / 2]);
+  albers: d3.geo.albers()
+      .scale(1000)
+      .translate([width / 2, height / 2]),
+
+  orthographic: d3.geo.orthographic()
+      .scale(400)
+      .translate([width / 2, height / 2])
+      .clipAngle(90)
+      .rotate([90,-35,8])
+      .precision(.1)
+
+}
 
 var projection = d3.geo.orthographic()
     .scale(400)
@@ -37,14 +48,6 @@ var projection = d3.geo.orthographic()
     .rotate([90,-35,8])
     .precision(.1);
 
-// var projection = d3.geo.satellite()
-//     .distance(1.1)
-//     .scale(5500)
-//     .rotate([76.00, -35.50, 32.12])
-//     .center([-2, 5])
-//     .tilt(25)
-//     .clipAngle(Math.acos(1 / 1.1) * 180 / Math.PI - 1e-6)
-//     .precision(.1);
 
 var path = d3.geo.path()
     .projection(projection);
@@ -96,7 +99,7 @@ function ready(error, topology, fires){
     // drawCanvas(fires);
 
 
-    var countries = topojson.feature(topology, topology.objects.countries).features
+    countries = topojson.feature(topology, topology.objects.countries).features
     g.selectAll("path")
           .data(countries)
         .enter()
@@ -111,30 +114,6 @@ function ready(error, topology, fires){
       .attr("r", function(d){return energy(d.frp)})
       .attr("fill", "red")
       .attr("fill-opacity", "0.2")
-
-
-//Special geo circles!
-    // g.selectAll(".point")
-    //   .data(fires)
-    // .enter().append("path")
-    //   .datum(function(d) {
-    //      return circle
-    //          .origin(projection([d.longitude,d.latitude]))
-    //          .angle(energy(d.frp))();
-    //   })
-    //   .attr("class", "point")
-    //   .attr("d", path);
-
-    //
-    // g.selectAll("path.point")
-    //   .data(fires)
-    // .enter().append("path")
-    //   .datum(function(d) {
-    //      return {type: "Point", coordinates: projection([d.longitude, d.latitude]), radius: d.Magnitude};
-    //   })
-    //   .attr("class", "point")
-    //   .style("fill", "red")
-    //   .attr("d", path);
 
 
     canvas.call(d3.behavior.drag()
@@ -155,6 +134,25 @@ function ready(error, topology, fires){
 }
 
 
+function switchProjection(type){
+
+  path = d3.geo.path()
+      .projection(projections[type]);
+
+  g.selectAll("path")
+        .data(countries)
+        .transition()
+        .duration(1000)
+        .attr("d", path)
+
+  g.selectAll("circle")
+    .transition()
+    .duration(1000)
+    .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
+    .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
+    .attr("r", function(d){return energy(d.frp)})
+
+}
 // function drawCanvas(data) {
 //
 //   // clear canvas
