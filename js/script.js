@@ -10,17 +10,12 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     firstTime = true,
     sens = 0.25,
     proj,
-    countries;
+    countries,
+    rawData;
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
     .attr("height", height)
-
-var canvas = d3.select('#viz').append("canvas")
-    .attr("width", width)
-    .attr("height", height)
-
-var context = canvas.node().getContext("2d");
 
 var projection = d3.geo.albersUsa()
     .scale(1000)
@@ -68,10 +63,38 @@ function dataClean(rawData, confCutOff, sizeCutOff){
     return sureFires;
 }
 
-//define the function that gets run when the data are loaded.
-function ready(error, us, fires){
+function drawPoints(fires){
+    var points = g.selectAll("circle")
+      .data(fires)
 
-    fires = dataClean(fires, 95, 300)
+    points.enter()
+        .append("circle")
+        .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
+        .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
+        .attr("r", 0)
+        .attr("fill", "red")
+        .attr("fill-opacity", "0.2")
+        .transition()
+        .duration(1000)
+        .attr("r", function(d){return energy(d.frp)})
+
+    points.exit()
+        .transition()
+        .duration(1000)
+        .attr("r", 0)
+        .remove()
+}
+
+function updatePoints(data, confCutOff, sizeCutOff) {
+    var fires = dataClean(rawData, confCutOff, sizeCutOff)
+    drawPoints(fires)
+}
+
+//define the function that gets run when the data are loaded.
+function ready(error, us, d){
+    rawData = d;
+
+    fires = dataClean(rawData, 95, 300)
 
     energy.domain(d3.extent(fires, function(d){return d.frp}))
 
@@ -87,17 +110,9 @@ function ready(error, us, fires){
         .attr("id", "state-borders")
         .attr("d", path);
 
-    g.selectAll("circle")
-      .data(fires).enter()
-      .append("circle")
-      .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
-      .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-      .attr("r", function(d){return energy(d.frp)})
-      .attr("fill", "red")
-      .attr("fill-opacity", "0.2")
-    // drawCanvas(fires);
+    drawPoints(fires)
 
-    canvas.call(zoom);
+    svg.call(zoom);
 }
 
 function move() {
@@ -109,34 +124,18 @@ function move() {
   g.style("stroke-width", 1 / s).attr("transform", "translate(" + t + ")scale(" + s + ")");
 }
 
-// function drawCanvas(data) {
-//   // clear canvas
-//   context.fillStyle = "#fff";
-//   context.clearRect(0,0,canvas.attr("width"),canvas.attr("height"));
-//   context.fill();
-//
-//   data.forEach(function(d){
-//       proj = projection([d.longitude,d.latitude])
-//
-//       context.beginPath();
-//       context.arc(proj[0], proj[1],2, 0,2*Math.PI);
-//       context.globalAlpha = 0.4;
-//       context.fillStyle="red";
-//       context.fill();
-//       context.closePath();
-//   })
-// }
+//Slider stuff.
 var confidence = document.getElementById('confValue');
 
 noUiSlider.create(confidence, {
-	start: 50,
+	start: 95,
 	range: {
 		min: 0,
 		max: 100
 	},
 	pips: {
 		mode: 'values',
-		values: [20, 80],
+		values: [5, 50, 95],
 		density: 4
 	}
 });
@@ -155,5 +154,5 @@ confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what t
     })
 
 confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
-        console.log(Math.round(+values,1))
+        updatePoints(rawData, Math.round(+values,1), 300)
     })
