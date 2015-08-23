@@ -1,5 +1,5 @@
 var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
-    height = $(window).height() - 85,
+    height = $(window).height(),
     padding = 20,
     firstTime = true,
     sens = 0.25,
@@ -14,9 +14,9 @@ var svg = d3.select("#viz").append("svg")
     .attr("width", width)
     .attr("height", height)
 
-var projection = d3.geo.albersUsa()
-    .scale(1000)
-    .translate([width / 2, height / 2])
+var projection = d3.geo.albers()
+    .scale(1900)
+    .translate([width / 1.1, height / 1.7])
 
 var path = d3.geo.path()
     .projection(projection);
@@ -24,7 +24,10 @@ var path = d3.geo.path()
 var circle = d3.geo.circle();
 
 var energy = d3.scale.linear()
-  .range([2,20])
+  .range([3,25])
+
+var brightness = d3.scale.linear()
+  .range(["#4575b4", "#d73027"])
 
 // zoom and pan
 var zoom = d3.behavior.zoom()
@@ -62,6 +65,7 @@ function dataClean(rawData, confCutOff, sizeCutOff){
 }
 
 function drawPoints(fires){
+
     var points = g.selectAll("circle")
       .data(fires, function(d){ return d.bright_t31 + d.frp + d.acq_date})
 
@@ -70,8 +74,8 @@ function drawPoints(fires){
         .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
         .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
         .attr("r", 0)
-        .attr("fill", "red")
-        .attr("fill-opacity", "0.2")
+        .attr("fill", function(d){return brightness(d.brightness)})
+        .attr("fill-opacity", "0.5")
         .transition()
         .duration(1000)
         .attr("r", function(d){return energy(d.frp)/zScale}  );
@@ -81,8 +85,6 @@ function drawPoints(fires){
         .duration(1000)
         .attr("r", 0)
         .remove()
-
-    console.log(d3.max(fires, function(d){return d.frp}))
 }
 
 function updatePoints(data, confCutOff, sizeCutOff) {
@@ -97,6 +99,7 @@ function ready(error, us, d){
     fires = dataClean(rawData, 95, 300)
 
     energy.domain(d3.extent(rawData, function(d){return +d.frp}))
+    brightness.domain(d3.extent(rawData, function(d){return +d.brightness}))
 
     g.append("g")
       .attr("id", "states")
@@ -155,9 +158,15 @@ confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what t
 var size = document.getElementById('sizeValue');
 
 noUiSlider.create(size, {
-	start: 350,
-	range: { min: 0, max: 6900 },
-	pips:  { mode: 'values', values: [50, 3450, 6850], density: 4 }
+	start: 125,
+    range: {
+		'min': [ 0 ],
+		'30%': [ 150 ],
+        '50%': [ 350 ],
+		'70%': [ 500 ],
+		'max': [ 6900 ]
+	},
+	pips:  { mode: 'values', values: [15, 350, 6800], density: 4 }
 });
 
 var tipHandles2 = size.getElementsByClassName('noUi-handle'),
