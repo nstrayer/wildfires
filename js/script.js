@@ -22,32 +22,9 @@ var canvas = d3.select('#viz').append("canvas")
 
 var context = canvas.node().getContext("2d");
 
-var projections = {
-  mercator: d3.geo.mercator()
-        .center([0, 5])
-        .scale(150)
-        .rotate([-180,0]),
-
-  albers: d3.geo.albers()
-      .scale(1000)
-      .translate([width / 2, height / 2]),
-
-  orthographic: d3.geo.orthographic()
-      .scale(400)
-      .translate([width / 2, height / 2])
-      .clipAngle(90)
-      .rotate([90,-35,8])
-      .precision(.1)
-
-}
-
-var projection = d3.geo.orthographic()
-    .scale(400)
+var projection = d3.geo.albersUsa()
+    .scale(1000)
     .translate([width / 2, height / 2])
-    .clipAngle(90)
-    .rotate([90,-35,8])
-    .precision(.1);
-
 
 var path = d3.geo.path()
     .projection(projection);
@@ -59,27 +36,24 @@ var energy = d3.scale.linear()
 
 // zoom and pan
 var zoom = d3.behavior.zoom()
+    .scaleExtent([1, 8])
     .on("zoom",function() {
-        g.attr("transform","translate("+
-            d3.event.translate.join(",")+")scale("+d3.event.scale+")");
+        move();
         g.selectAll("circle")
            .attr("d", path.projection(projection))
            .attr("r", function(d){return energy(d.frp)/zoom.scale()}  );
-        g.selectAll("path")
-            .attr("d", path.projection(projection));
-  });
+    });
 
 var g = svg.append("g");
 
 //Set up the queue so that all the stuff shows up at the same time. Also, the code is cleaner
 queue()
-    .defer(d3.json,"data/world-110m2.json")
-    .defer(d3.csv,"data/world.csv")
-    // .defer(d3.csv, "https://firms.modaps.eosdis.nasa.gov/active_fire/text/Global_24h.csv")
+    .defer(d3.json,"data/us-10m.json")
+    .defer(d3.csv,"data/fires.csv")
     .await(ready);
 
 //define the function that gets run when the data are loaded.
-function ready(error, topology, fires){
+function ready(error, us, fires){
 
     sureFires = []
     fires.forEach(function(d){
@@ -95,16 +69,20 @@ function ready(error, topology, fires){
 
     fires = sureFires
     energy.domain(d3.extent(fires, function(d){return d.frp}))
-    console.log(fires.length)
-    // drawCanvas(fires);
 
 
-    countries = topojson.feature(topology, topology.objects.countries).features
-    g.selectAll("path")
-          .data(countries)
-        .enter()
-          .append("path")
-          .attr("d", path)
+    g.append("g")
+      .attr("id", "states")
+    .selectAll("path")
+      .data(topojson.feature(us, us.objects.states).features)
+    .enter().append("path")
+      .attr("d", path)
+
+
+    g.append("path")
+        .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+        .attr("id", "state-borders")
+        .attr("d", path);
 
     g.selectAll("circle")
       .data(fires).enter()
@@ -115,29 +93,16 @@ function ready(error, topology, fires){
       .attr("fill", "red")
       .attr("fill-opacity", "0.2")
 
-
-    canvas.call(d3.behavior.drag()
-      .origin(function() { var r = projection.rotate(); return {x: r[0] / sens, y: -r[1] / sens}; })
-      .on("drag", function() {
-        var rotate = projection.rotate();
-        projection.rotate([d3.event.x * sens, -d3.event.y * sens, rotate[2]]);
-        g.selectAll("path").attr("d", path);
-        g.selectAll("circle")
-        .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
-        .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-        .attr("r", function(d){return energy(d.frp)})
-        // drawCanvas(fires);
-
-      }));
-
     canvas.call(zoom);
 }
 
 
 function switchProjection(type){
 
+  projection = projections[type]
+
   path = d3.geo.path()
-      .projection(projections[type]);
+      .projection(projection);
 
   g.selectAll("path")
         .data(countries)
@@ -150,8 +115,17 @@ function switchProjection(type){
     .duration(1000)
     .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
     .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-    .attr("r", function(d){return energy(d.frp)})
+    .attr("r",  function(d){return energy(d.frp)})
 
+}
+
+function move() {
+  var t = d3.event.translate,
+      s = d3.event.scale;
+  t[0] = Math.min(width / 2 * (s - 1), Math.max(width / 2 * (1 - s), t[0]));
+  t[1] = Math.min(height / 2 * (s - 1) + 230 * s, Math.max(height / 2 * (1 - s) - 230 * s, t[1]));
+  zoom.translate(t);
+  g.style("stroke-width", 1 / s).attr("transform", "translate(" + t + ")scale(" + s + ")");
 }
 // function drawCanvas(data) {
 //
