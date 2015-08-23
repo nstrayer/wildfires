@@ -32,11 +32,11 @@ var path = d3.geo.path()
 var circle = d3.geo.circle();
 
 var energy = d3.scale.linear()
-  .range([5,20])
+  .range([2,20])
 
 // zoom and pan
 var zoom = d3.behavior.zoom()
-    .scaleExtent([1, 8])
+    .scaleExtent([1, 25])
     .on("zoom",function() {
         move();
         g.selectAll("circle")
@@ -52,24 +52,28 @@ queue()
     .defer(d3.csv,"data/fires.csv")
     .await(ready);
 
-//define the function that gets run when the data are loaded.
-function ready(error, us, fires){
-
+function dataClean(rawData, confCutOff, sizeCutOff){
     sureFires = []
-    fires.forEach(function(d){
-        d.latitude = +d.latitude
-        d.longitude = +d.longitude
+    rawData.forEach(function(d){
+        d.latitude   = +d.latitude
+        d.longitude  = +d.longitude
         d.confidence = +d.confidence
-        d.frp = +d.frp
+        d.frp        = +d.frp
 
-        if (d.confidence > 95 && d.frp > 300){
+        if (d.confidence > confCutOff && d.frp > sizeCutOff){
           sureFires.push(d)
         }
     })
+    console.log(sureFires.length)
+    return sureFires;
+}
 
-    fires = sureFires
+//define the function that gets run when the data are loaded.
+function ready(error, us, fires){
+
+    fires = dataClean(fires, 95, 300)
+
     energy.domain(d3.extent(fires, function(d){return d.frp}))
-
 
     g.append("g")
       .attr("id", "states")
@@ -77,7 +81,6 @@ function ready(error, us, fires){
       .data(topojson.feature(us, us.objects.states).features)
     .enter().append("path")
       .attr("d", path)
-
 
     g.append("path")
         .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
@@ -92,31 +95,9 @@ function ready(error, us, fires){
       .attr("r", function(d){return energy(d.frp)})
       .attr("fill", "red")
       .attr("fill-opacity", "0.2")
+    // drawCanvas(fires);
 
     canvas.call(zoom);
-}
-
-
-function switchProjection(type){
-
-  projection = projections[type]
-
-  path = d3.geo.path()
-      .projection(projection);
-
-  g.selectAll("path")
-        .data(countries)
-        .transition()
-        .duration(1000)
-        .attr("d", path)
-
-  g.selectAll("circle")
-    .transition()
-    .duration(1000)
-    .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
-    .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-    .attr("r",  function(d){return energy(d.frp)})
-
 }
 
 function move() {
@@ -127,8 +108,8 @@ function move() {
   zoom.translate(t);
   g.style("stroke-width", 1 / s).attr("transform", "translate(" + t + ")scale(" + s + ")");
 }
+
 // function drawCanvas(data) {
-//
 //   // clear canvas
 //   context.fillStyle = "#fff";
 //   context.clearRect(0,0,canvas.attr("width"),canvas.attr("height"));
@@ -138,10 +119,41 @@ function move() {
 //       proj = projection([d.longitude,d.latitude])
 //
 //       context.beginPath();
-//       context.arc(proj[0], proj[1], energy(d.frp), 0,2*Math.PI);
-//       context.globalAlpha = 0.6;
+//       context.arc(proj[0], proj[1],2, 0,2*Math.PI);
+//       context.globalAlpha = 0.4;
 //       context.fillStyle="red";
 //       context.fill();
 //       context.closePath();
 //   })
 // }
+var confidence = document.getElementById('confValue');
+
+noUiSlider.create(confidence, {
+	start: 50,
+	range: {
+		min: 0,
+		max: 100
+	},
+	pips: {
+		mode: 'values',
+		values: [20, 80],
+		density: 4
+	}
+});
+
+var tipHandles = confidence.getElementsByClassName('noUi-handle'),
+	   tooltips = [];
+
+// Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
+for ( var i = 0; i < tipHandles.length; i++ ){
+	tooltips[i] = document.createElement('div');
+	tipHandles[i].appendChild(tooltips[i]);
+}
+
+confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
+        tooltips[handle].innerHTML = Math.round(values[handle],1);
+    })
+
+confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
+        console.log(Math.round(+values,1))
+    })

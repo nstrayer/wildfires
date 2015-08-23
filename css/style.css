@@ -92,3 +92,8 @@ hr {
     border: 0;
     background: grey;
 }
+
+#confValue {
+    padding-left: 20px;
+    padding-right: 20px;
+}

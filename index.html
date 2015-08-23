@@ -1,7 +1,11 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-
-<body>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Wildfires</title>
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -12,7 +16,34 @@
     <script type="text/javascript" src="js/jquery.localScroll.js"></script>
     <script type="text/javascript" src="js/jquery.scrollTo.js"></script>
 
-    <div id = "menu" class = "col-md-4 col-sm-12"></div>
+    <!-- nouislider stuff -->
+    <link href  = "noUiSlider.8.0.2/nouislider.css" rel="stylesheet">
+    <link href  = "noUiSlider.8.0.2/nouislider.pips.css" rel="stylesheet">
+    <script src = "noUiSlider.8.0.2/nouislider.min.js"></script>
+</head>
+
+<body>
+    <div id = "menu" class = "col-md-4 col-sm-12">
+        <h1> U.S. Wildfires </h1>
+        <hr>
+        <p>These data come from NASA's
+            <a href = "http://terra.nasa.gov/">Terra</a> and
+            <a href = "http://aqua.nasa.gov/">Aqua</a> satelites. Both satelites
+        are part of the general <a href = "http://eospso.nasa.gov/"> Earth Observing System </a> (EOS)
+        network.
+        </p>
+        <p>
+            The locations of fires are determined by heat anomolies detected from space. Having a satelite based
+            method of detecting fires is valuable as it provides firefigthers an advanced view of the current situation
+            in nearly realtime. This can save lives and property.
+        </p>
+        <p>
+            As a result sometimes the points are not entirely accurate. The data from the satelites is paired width
+            a confidence score, from between 0-100. With 0 being no confidence in the datapoint and 100 being total confidence.
+
+        </p>
+        <div id = "confValue"></div>
+    </div>
     <div id = "viz"  class = "col-md-8 col-sm-12"></div>
 
     <link rel="stylesheet" type="text/css" href="css/style.css">
