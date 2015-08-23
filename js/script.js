@@ -1,9 +1,3 @@
-d3.selection.prototype.moveToFront = function() {
-  return this.each(function(){
-    this.parentNode.appendChild(this);
-  });
-};
-
 var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     height = $(window).height() - 85,
     padding = 20,
@@ -13,7 +7,8 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     countries,
     rawData,
     confLevel = 95,
-    sizeVal = 300;
+    sizeVal = 300,
+    zScale = 1;
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
@@ -36,9 +31,11 @@ var zoom = d3.behavior.zoom()
     .scaleExtent([1, 25])
     .on("zoom",function() {
         move();
+        zScale = zoom.scale();
+        // console.log("Z scale :" + zScale)
         g.selectAll("circle")
            .attr("d", path.projection(projection))
-           .attr("r", function(d){return energy(d.frp)/zoom.scale()}  );
+           .attr("r", function(d){return energy(d.frp)/zScale}  );
     });
 
 var g = svg.append("g");
@@ -57,17 +54,16 @@ function dataClean(rawData, confCutOff, sizeCutOff){
         d.confidence = +d.confidence
         d.frp        = +d.frp
 
-        if (d.confidence > confCutOff && d.frp > sizeCutOff){
+        if (d.confidence >= confCutOff && d.frp >= sizeCutOff){
           sureFires.push(d)
         }
     })
-    console.log(sureFires.length)
     return sureFires;
 }
 
 function drawPoints(fires){
     var points = g.selectAll("circle")
-      .data(fires)
+      .data(fires, function(d){ return d.bright_t31 + d.frp + d.acq_date})
 
     points.enter()
         .append("circle")
@@ -78,13 +74,15 @@ function drawPoints(fires){
         .attr("fill-opacity", "0.2")
         .transition()
         .duration(1000)
-        .attr("r", function(d){return energy(d.frp)})
+        .attr("r", function(d){return energy(d.frp)/zScale}  );
 
     points.exit()
         .transition()
         .duration(1000)
         .attr("r", 0)
         .remove()
+
+    console.log(d3.max(fires, function(d){return d.frp}))
 }
 
 function updatePoints(data, confCutOff, sizeCutOff) {
@@ -98,7 +96,7 @@ function ready(error, us, d){
 
     fires = dataClean(rawData, 95, 300)
 
-    energy.domain(d3.extent(fires, function(d){return d.frp}))
+    energy.domain(d3.extent(rawData, function(d){return +d.frp}))
 
     g.append("g")
       .attr("id", "states")
@@ -157,9 +155,9 @@ confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what t
 var size = document.getElementById('sizeValue');
 
 noUiSlider.create(size, {
-	start: 300,
-	range: { min: 0, max: 1000 },
-	pips:  { mode: 'values', values: [50, 200, 950], density: 4 }
+	start: 350,
+	range: { min: 0, max: 6900 },
+	pips:  { mode: 'values', values: [50, 3450, 6850], density: 4 }
 });
 
 var tipHandles2 = size.getElementsByClassName('noUi-handle'),
