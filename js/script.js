@@ -11,7 +11,9 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     sens = 0.25,
     proj,
     countries,
-    rawData;
+    rawData,
+    confLevel = 95,
+    sizeVal = 300;
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
@@ -129,15 +131,8 @@ var confidence = document.getElementById('confValue');
 
 noUiSlider.create(confidence, {
 	start: 95,
-	range: {
-		min: 0,
-		max: 100
-	},
-	pips: {
-		mode: 'values',
-		values: [5, 50, 95],
-		density: 4
-	}
+	range: { min: 0, max: 100 },
+	pips: { mode: 'values', values: [5, 50, 95], density: 4 }
 });
 
 var tipHandles = confidence.getElementsByClassName('noUi-handle'),
@@ -154,5 +149,33 @@ confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what t
     })
 
 confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
-        updatePoints(rawData, Math.round(+values,1), 300)
+        confLevel = Math.round(+values,1)
+        updatePoints(rawData, confLevel, sizeVal)
+    })
+
+// =========================================================
+var size = document.getElementById('sizeValue');
+
+noUiSlider.create(size, {
+	start: 300,
+	range: { min: 0, max: 1000 },
+	pips:  { mode: 'values', values: [50, 200, 950], density: 4 }
+});
+
+var tipHandles2 = size.getElementsByClassName('noUi-handle'),
+	   tooltips2 = [];
+
+// Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
+for ( var i = 0; i < tipHandles2.length; i++ ){
+	tooltips2[i] = document.createElement('div');
+	tipHandles2[i].appendChild(tooltips2[i]);
+}
+
+size.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
+        tooltips2[handle].innerHTML = Math.round(values[handle],1);
+    })
+
+size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
+        sizeVal = Math.round(+values,1)
+        updatePoints(rawData, confLevel, sizeVal )
     })

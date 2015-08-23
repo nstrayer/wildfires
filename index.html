@@ -26,23 +26,34 @@
     <div id = "menu" class = "col-md-4 col-sm-12">
         <h1> U.S. Wildfires </h1>
         <hr>
-        <p>These data come from NASA's
-            <a href = "http://terra.nasa.gov/">Terra</a> and
-            <a href = "http://aqua.nasa.gov/">Aqua</a> satelites. Both satelites
-        are part of the general <a href = "http://eospso.nasa.gov/"> Earth Observing System </a> (EOS)
-        network.
-        </p>
-        <p>
-            The locations of fires are determined by heat anomolies detected from space. Having a satelite based
-            method of detecting fires is valuable as it provides firefigthers an advanced view of the current situation
-            in nearly realtime. This can save lives and property.
-        </p>
-        <p>
-            As a result sometimes the points are not entirely accurate. The data from the satelites is paired width
-            a confidence score, from between 0-100. With 0 being no confidence in the datapoint and 100 being total confidence.
+        <div id = "info">
+            <h3> Info: </h3>
+            <p>These data come from NASA's
+                <a href = "http://terra.nasa.gov/">Terra</a> and
+                <a href = "http://aqua.nasa.gov/">Aqua</a> satelites. Both satelites
+            are part of the general <a href = "http://eospso.nasa.gov/"> Earth Observing System </a> (EOS)
+            network.
+            </p>
+            <p>
+                The locations of fires are determined by heat anomolies detected from space. Having a satelite based
+                method of detecting fires is valuable as it provides firefigthers an advanced view of the current situation
+                in nearly realtime. This can save lives and property.
+            </p>
+        </div>
+        <div id = "confidence">
+            <h3> Confidence: </h3>
+            <p>
+                As a result sometimes the points are not entirely accurate. The data from the satelites is paired with
+                a confidence score, from between 0-100. With 0 being no confidence in the datapoint and 100 being total confidence.
 
-        </p>
-        <div id = "confValue"></div>
+            </p>
+            <div id = "confValue"></div>
+        </div>
+        <div class = "menuDivs" id = "size">
+            <h3> Size: </h3>
+
+            <div id = "sizeValue"></div>
+        </div>
     </div>
     <div id = "viz"  class = "col-md-8 col-sm-12"></div>
 
