@@ -57,7 +57,7 @@ path {
   fill: grey;
 }
 
-h3 {
+h4 {
     color: steelblue;
 }
 
@@ -96,10 +96,15 @@ hr {
     background: grey;
 }
 
-#confValue {
-    padding-left: 20px;
-    padding-right: 20px;
-}
 .menuDivs {
-    padding-top: 25px;
+    padding-top: 60px;
+}
+
+#sizeLegend {
+    /*background-color: black;*/
+    height: 60px;
+}
+
+#confidence {
+    padding-bottom: 25px;
 }

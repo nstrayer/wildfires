@@ -8,7 +8,11 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     rawData,
     confLevel = 95,
     sizeVal = 300,
-    zScale = 1;
+    zScale = 1,
+    sizeDomain,
+    sizeRange = [5,25],
+    brightnessRange = ["#4575b4", "#d73027"],
+    brightnessDomain;
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
@@ -24,10 +28,10 @@ var path = d3.geo.path()
 var circle = d3.geo.circle();
 
 var energy = d3.scale.linear()
-  .range([3,25])
+  .range(sizeRange)
 
 var brightness = d3.scale.linear()
-  .range(["#4575b4", "#d73027"])
+  .range(brightnessRange)
 
 // zoom and pan
 var zoom = d3.behavior.zoom()
@@ -98,8 +102,11 @@ function ready(error, us, d){
 
     fires = dataClean(rawData, 95, 300)
 
-    energy.domain(d3.extent(rawData, function(d){return +d.frp}))
-    brightness.domain(d3.extent(rawData, function(d){return +d.brightness}))
+    sizeDomain = d3.extent(rawData, function(d){return +d.frp})
+    energy.domain(sizeDomain)
+
+    brightnessDomain = d3.extent(rawData, function(d){return +d.brightness})
+    brightness.domain(brightnessDomain)
 
     g.append("g")
       .attr("id", "states")
@@ -116,6 +123,26 @@ function ready(error, us, d){
     drawPoints(fires)
 
     svg.call(zoom);
+
+    //draw values for the legend:
+    legend.selectAll(".sizeValue")
+        .data(sizeDomain).enter()
+        .append("text")
+        .attr("x", function(d,i){return xChooser(i) })
+        .attr("y", legendEdge * (2/5) + 15)
+        .text(function(d,i){return d + "MW"})
+        .attr("text-anchor", "middle")
+        .attr("font-size", 11)
+
+    //draw values for the legend:
+    legend.selectAll(".sizeValue")
+        .data(brightnessDomain).enter()
+        .append("text")
+        .attr("x", function(d,i){return xChooser(i) })
+        .attr("y", legendEdge * (4/5) + 15 )
+        .text(function(d,i){return d + "K"})
+        .attr("text-anchor", "middle")
+        .attr("font-size", 11)
 }
 
 function move() {
@@ -146,7 +173,7 @@ for ( var i = 0; i < tipHandles.length; i++ ){
 }
 
 confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
-        tooltips[handle].innerHTML = Math.round(values[handle],1);
+        tooltips[handle].innerHTML = Math.round(values[handle],1) + "%";
     })
 
 confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
@@ -186,3 +213,47 @@ size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do w
         sizeVal = Math.round(+values,1)
         updatePoints(rawData, confLevel, sizeVal )
     })
+
+//==================================================================================
+//Legend stuffs:
+//==================================================================================
+
+var legendEdge = 150;
+function xChooser(i){
+    if(i == 0){
+        return legendEdge/2 - 35
+    } else {
+        return legendEdge/2 + 35
+    }
+}
+
+var legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("height", legendEdge)
+    .attr("width", legendEdge)
+    .attr("transform", "translate(" + (width - 180) +  "," + 30 + ")")
+
+legend.append("rect")
+    .attr("height", legendEdge )
+    .attr("width", legendEdge)
+    .attr("rx", 15)
+    .attr("ry", 15)
+    .attr("fill", "#aaa")
+    .attr("fill-opacity", 0.9)
+    .style("stroke-width", "2px")
+    .style("stroke", "black")
+
+legend.selectAll(".legendCirc")
+    .data(sizeRange).enter()
+    .append("circle")
+    .attr("r", function(d){return d})
+    .attr("cx", function(d,i){return xChooser(i)})
+    .attr("cy", function(d){return (legendEdge * (2/5)) - d})
+
+legend.selectAll(".legendCirc")
+    .data(brightnessRange).enter()
+    .append("circle")
+    .attr("r", 20)
+    .attr("cx", function(d,i){return xChooser(i) })
+    .attr("cy", legendEdge * (4/5) - 17 )
+    .attr("fill", function(d){return d})

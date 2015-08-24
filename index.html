@@ -27,33 +27,43 @@
         <h1> U.S. Wildfires </h1>
         <hr>
         <div id = "info">
-            <h3> Info: </h3>
+            <h4> Info: </h4>
             <p>These data come from NASA's
                 <a href = "http://terra.nasa.gov/">Terra</a> and
-                <a href = "http://aqua.nasa.gov/">Aqua</a> satelites. Both satelites
+                <a href = "http://aqua.nasa.gov/">Aqua</a> satellites. Both satellites
             are part of the general <a href = "http://eospso.nasa.gov/"> Earth Observing System </a> (EOS)
             network.
             </p>
             <p>
-                The locations of fires are determined by heat anomolies detected from space. Having a satelite based
-                method of detecting fires is valuable as it provides firefigthers an advanced view of the current situation
-                in nearly realtime. This can save lives and property.
+                The locations of fires are determined by heat anomalies detected by the satellites. Having a satellite based
+                method of detecting fires is valuable as it provides firefighters an advanced view of the current situation
+                in nearly real time. This can save lives and property.
             </p>
         </div>
-        <div id = "confidence">
-            <h3> Confidence: </h3>
-            <p>
-                As a result sometimes the points are not entirely accurate. The data from the satelites is paired with
-                a confidence score, from between 0-100. With 0 being no confidence in the datapoint and 100 being total confidence.
 
+        <div id = "size">
+            <h4> Size: </h4
+            <p>The size of the points corresponds to the "Fire Radiative Power" which is the power output of the fire in
+            MegaWatts (MW). Drag the slider to control what the cut off for the MW's of a fire to be shown. (Note that
+            slider scale is nonlinear.) </p>
+            <div id = "sizeValue" class = "col-md-12"></div>
+        </div>
+
+        <div class = "menuDivs" id = "color">
+            <h4> Color: </h4>
+            <p>The color of the points corresponds to the "Brightness Temperature" of the fire, or it's temperature in
+                Kelvin (K). Colors chosen for legend represent the lowest and highest values seen in the dataset.</p>
+        </div>
+
+        <div id = "confidence">
+            <h4> Confidence: </h4>
+            <p>
+                As a result sometimes the points are not entirely accurate. The data from the satellites is paired with
+                a confidence score, from between 0-100. With 0 being no confidence in the datapoint and 100 being total confidence.
             </p>
-            <div id = "confValue"></div>
+            <div id = "confValue" class = "col-md-12"></div>
         </div>
-        <div class = "menuDivs" id = "size">
-            <h3> Size: </h3>
-            <p> </p>
-            <div id = "sizeValue"></div>
-        </div>
+
     </div>
     <div id = "viz"  class = "col-md-8 col-sm-12"></div>
 
