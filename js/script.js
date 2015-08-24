@@ -1,16 +1,11 @@
 var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     height = $(window).height(),
-    padding = 20,
-    firstTime = true,
-    sens = 0.25,
-    proj,
-    countries,
     rawData,
     confLevel = 95,
     sizeVal = 300,
     zScale = 1,
     sizeDomain = [0,0],
-    sizeRange = [5,25],
+    sizeRange = [3,25],
     brightnessRange = ["#4575b4", "#d73027"],
     brightnessDomain = [0,0];
 
@@ -35,7 +30,7 @@ var brightness = d3.scale.linear()
 
 // zoom and pan
 var zoom = d3.behavior.zoom()
-    .scaleExtent([1, 25])
+    .scaleExtent([1, 35])
     .on("zoom",function() {
         move();
         zScale = zoom.scale();
@@ -98,7 +93,7 @@ function updatePoints(data, confCutOff, sizeCutOff) {
 
 //define the function that gets run when the data are loaded.
 function ready(error, us, d){
-    rawData = d;
+    rawData = dataClean(d, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
 
     fires = dataClean(rawData, 95, 300)
 
@@ -125,12 +120,12 @@ function ready(error, us, d){
     svg.call(zoom);
 
     //draw values for the legend:
-    sizeVal
+    sizeText
         .data(sizeDomain)
         .text(function(d,i){return d + "MW"})
 
     //draw values for the legend:
-    brightVal
+    brightText
         .data(brightnessDomain)
         .text(function(d,i){return d + "K"})
 }
@@ -169,6 +164,7 @@ confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what t
 confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
         confLevel = Math.round(+values,1)
         updatePoints(rawData, confLevel, sizeVal)
+        console.log("conf level: " + confLevel + " size: " + sizeVal)
     })
 
 // =========================================================
@@ -266,7 +262,7 @@ legend.selectAll(".legendCirc")
     .attr("fill", function(d){return d})
 
 //draw values for the legend:
-var sizeVal = legend.selectAll(".sizeValue")
+var sizeText = legend.selectAll(".sizeValue")
     .attr("class", "sizeValue")
     .data(sizeDomain).enter()
     .append("text")
@@ -278,7 +274,7 @@ var sizeVal = legend.selectAll(".sizeValue")
     .attr("font-size", 11)
 
 //draw values for the legend:
-var brightVal = legend.selectAll(".brightnessValue")
+var brightText = legend.selectAll(".brightnessValue")
     .attr("class", "brightnessValue")
     .data(brightnessDomain).enter()
     .append("text")
