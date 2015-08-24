@@ -1,25 +1,20 @@
 var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     height = $(window).height(),
-    padding = 20,
-    firstTime = true,
-    sens = 0.25,
-    proj,
-    countries,
     rawData,
     confLevel = 95,
     sizeVal = 300,
     zScale = 1,
-    sizeDomain,
-    sizeRange = [5,25],
+    sizeDomain = [0,0],
+    sizeRange = [3,25],
     brightnessRange = ["#4575b4", "#d73027"],
-    brightnessDomain;
+    brightnessDomain = [0,0];
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
     .attr("height", height)
 
 var projection = d3.geo.albers()
-    .scale(1900)
+    .scale(width*1.8)
     .translate([width / 1.1, height / 1.7])
 
 var path = d3.geo.path()
@@ -35,7 +30,7 @@ var brightness = d3.scale.linear()
 
 // zoom and pan
 var zoom = d3.behavior.zoom()
-    .scaleExtent([1, 25])
+    .scaleExtent([1, 35])
     .on("zoom",function() {
         move();
         zScale = zoom.scale();
@@ -98,7 +93,7 @@ function updatePoints(data, confCutOff, sizeCutOff) {
 
 //define the function that gets run when the data are loaded.
 function ready(error, us, d){
-    rawData = d;
+    rawData = dataClean(d, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
 
     fires = dataClean(rawData, 95, 300)
 
@@ -125,24 +120,14 @@ function ready(error, us, d){
     svg.call(zoom);
 
     //draw values for the legend:
-    legend.selectAll(".sizeValue")
-        .data(sizeDomain).enter()
-        .append("text")
-        .attr("x", function(d,i){return xChooser(i) })
-        .attr("y", legendEdge * (2/5) + 15)
+    sizeText
+        .data(sizeDomain)
         .text(function(d,i){return d + "MW"})
-        .attr("text-anchor", "middle")
-        .attr("font-size", 11)
 
     //draw values for the legend:
-    legend.selectAll(".sizeValue")
-        .data(brightnessDomain).enter()
-        .append("text")
-        .attr("x", function(d,i){return xChooser(i) })
-        .attr("y", legendEdge * (4/5) + 15 )
+    brightText
+        .data(brightnessDomain)
         .text(function(d,i){return d + "K"})
-        .attr("text-anchor", "middle")
-        .attr("font-size", 11)
 }
 
 function move() {
@@ -179,6 +164,7 @@ confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what t
 confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
         confLevel = Math.round(+values,1)
         updatePoints(rawData, confLevel, sizeVal)
+        console.log("conf level: " + confLevel + " size: " + sizeVal)
     })
 
 // =========================================================
@@ -218,7 +204,7 @@ size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do w
 //Legend stuffs:
 //==================================================================================
 
-var legendEdge = 150;
+var legendEdge = 140;
 function xChooser(i){
     if(i == 0){
         return legendEdge/2 - 35
@@ -226,12 +212,29 @@ function xChooser(i){
         return legendEdge/2 + 35
     }
 }
+var legendOpen = false;
 
 var legend = svg.append("g")
     .attr("class", "legend")
     .attr("height", legendEdge)
     .attr("width", legendEdge)
-    .attr("transform", "translate(" + (width - 180) +  "," + 30 + ")")
+    .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+    .on("click", function(){
+        if(!legendOpen){
+            d3.select(this).transition()
+                .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
+
+            d3.selectAll(".legendCover").attr("fill-opacity", 0)
+            legendOpen = true
+        } else {
+            d3.select(this).transition()
+                .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+                .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
+
+            legendOpen = false
+        }
+
+    })
 
 legend.append("rect")
     .attr("height", legendEdge )
@@ -257,3 +260,47 @@ legend.selectAll(".legendCirc")
     .attr("cx", function(d,i){return xChooser(i) })
     .attr("cy", legendEdge * (4/5) - 17 )
     .attr("fill", function(d){return d})
+
+//draw values for the legend:
+var sizeText = legend.selectAll(".sizeValue")
+    .attr("class", "sizeValue")
+    .data(sizeDomain).enter()
+    .append("text")
+    .attr("x", function(d,i){return xChooser(i) })
+    .attr("y", legendEdge * (2/5) + 15)
+    .text("")
+    .attr("text-anchor", "middle")
+    .attr("font-family", "optima")
+    .attr("font-size", 11)
+
+//draw values for the legend:
+var brightText = legend.selectAll(".brightnessValue")
+    .attr("class", "brightnessValue")
+    .data(brightnessDomain).enter()
+    .append("text")
+    .attr("x", function(d,i){return xChooser(i) })
+    .attr("y", legendEdge * (4/5) + 15 )
+    .text("")
+    .attr("text-anchor", "middle")
+    .attr("font-family", "optima")
+    .attr("font-size", 11)
+
+legend.append("rect")
+    .attr("class", "legendCover")
+    .attr("height", legendEdge )
+    .attr("width",  legendEdge )
+    .attr("rx", 15)
+    .attr("ry", 15)
+    .attr("fill", "#aaa")
+    .attr("fill-opacity", 1)
+    .style("stroke-width", "2px")
+    .style("stroke", "black")
+
+legend.append("text")
+    .attr("class", "legendCover")
+    .attr("x", legendEdge )
+    .attr("y", legendEdge + 65 )
+    .attr("text-anchor", "end")
+    .attr("font-size", 75)
+    .attr("font-family", "optima")
+    .text("Click for legend")
