@@ -2,7 +2,7 @@
 cd /home/pi/scriptsToRun/wildfires
 
 # first we download
-curl -ok data/fires.csv https://firms.modaps.eosdis.nasa.gov/active_fire/text/USA_contiguous_and_Hawaii_48h.csv
+curl -o -k data/fires.csv https://firms.modaps.eosdis.nasa.gov/active_fire/text/USA_contiguous_and_Hawaii_48h.csv
 
 # now we add commit and push to gh-pages
 git add --all :/
