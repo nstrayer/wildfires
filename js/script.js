@@ -13,55 +13,7 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
 
     mapboxgl.accessToken = mapToken;
 
-// Setup mapbox-gl map
-var map = new mapboxgl.Map({
-    container: 'viz', // container id
-    style: mapStyle,
-    center: [-0.1,51.5119112],
-    zoom: 13.5,
-})
-map.scrollZoom.disable()
-map.addControl(new mapboxgl.Navigation());
-
-var svg = d3.select("#viz").append("svg")
-    .attr("width", width)
-    .attr("height", height)
-
-var projection = d3.geo.albers()
-    .scale(width*1.8)
-    .translate([width / 1.1, height / 1.7])
-
-var path = d3.geo.path()
-    .projection(projection);
-
-var circle = d3.geo.circle();
-
-var energy = d3.scale.linear()
-  .range(sizeRange)
-
-var brightness = d3.scale.linear()
-  .range(brightnessRange)
-
-// zoom and pan
-var zoom = d3.behavior.zoom()
-    .scaleExtent([1, 35])
-    .on("zoom",function() {
-        move();
-        zScale = zoom.scale();
-        // console.log("Z scale :" + zScale)
-        g.selectAll("circle")
-           .attr("d", path.projection(projection))
-           .attr("r", function(d){return energy(d.frp)/zScale}  );
-    });
-
-var g = svg.append("g");
-
-//Set up the queue so that all the stuff shows up at the same time. Also, the code is cleaner
-queue()
-    .defer(d3.json,"data/us-10m.json")
-    .defer(d3.csv,"data/fires.csv")
-    .await(ready);
-
+//Function to make sure the fire data is nice and proper.
 function dataClean(rawData, confCutOff, sizeCutOff){
     sureFires = []
     rawData.forEach(function(d){
@@ -77,38 +29,36 @@ function dataClean(rawData, confCutOff, sizeCutOff){
     return sureFires;
 }
 
-function drawPoints(fires){
+// Setup mapbox-gl map
+var map = new mapboxgl.Map({
+    container: 'viz', // container id
+    style: mapStyle,
+    center: [ -95.977, 41.706],
+    zoom: 3
+})
+map.scrollZoom.disable()
+map.addControl(new mapboxgl.Navigation());
 
-    var points = g.selectAll("circle")
-      .data(fires, function(d){ return d.bright_t31 + d.frp + d.acq_date})
+// Setup our svg layer that we can manipulate with d3
+var container = map.getCanvasContainer()
+var svg = d3.select(container).append("svg")
 
-    points.enter()
-        .append("circle")
-        .attr("cx", function(d){return projection([d.longitude,d.latitude])[0]  })
-        .attr("cy", function(d){return projection([d.longitude,d.latitude])[1]  })
-        .attr("r", 0)
-        .attr("fill", function(d){return brightness(d.brightness)})
-        .attr("fill-opacity", "0.5")
-        .transition()
-        .duration(1000)
-        .attr("r", function(d){return energy(d.frp)/zScale}  );
-
-    points.exit()
-        .transition()
-        .duration(1000)
-        .attr("r", 0)
-        .remove()
+function project(d) {
+      return map.project(getLL(d));
+    }
+function getLL(d) {
+  return new mapboxgl.LngLat(+d.longitude, +d.latitude)
 }
 
-function updatePoints(data, confCutOff, sizeCutOff) {
-    var fires = dataClean(rawData, confCutOff, sizeCutOff)
-    drawPoints(fires)
-}
+var energy = d3.scale.linear()
+  .range(sizeRange)
 
-//define the function that gets run when the data are loaded.
-function ready(error, us, d){
-    rawData = dataClean(d, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
+var brightness = d3.scale.linear()
+  .range(brightnessRange)
 
+d3.csv("data/fires.csv", function(err, data) {
+
+    rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
     fires = dataClean(rawData, 95, 300)
 
     sizeDomain = d3.extent(rawData, function(d){return +d.frp})
@@ -117,41 +67,45 @@ function ready(error, us, d){
     brightnessDomain = d3.extent(rawData, function(d){return +d.brightness})
     brightness.domain(brightnessDomain)
 
-    // g.append("g")
-    //   .attr("id", "states")
-    // .selectAll("path")
-    //   .data(topojson.feature(us, us.objects.states).features)
-    // .enter().append("path")
-    //   .attr("d", path)
-    //
-    // g.append("path")
-    //     .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
-    //     .attr("id", "state-borders")
-    //     .attr("d", path);
+    console.log(fires[0], getLL(fires[0]), project(fires[0]))
+    var dots = svg.selectAll("circle.dot")
+        .data(fires)
 
-    drawPoints(fires)
+    dots.enter().append("circle").classed("dot", true)
+        .attr("r", 1)
+        .style({
+            fill: "#0082a3",
+            "fill-opacity": 0.6,
+            stroke: "#004d60",
+            "stroke-width": 1
+        })
+        .transition().duration(1000)
+        .attr("r", 6)
 
-    svg.call(zoom);
+      function render() {
+        dots
+        .attr({
+          cx: function(d) {
+            var x = project(d).x;
+            return x
+          },
+          cy: function(d) {
+            var y = project(d).y;
+            return y
+          },
+        })
+      }
 
-    //draw values for the legend:
-    sizeText
-        .data(sizeDomain)
-        .text(function(d,i){return d + "MW"})
-
-    //draw values for the legend:
-    brightText
-        .data(brightnessDomain)
-        .text(function(d,i){return d + "K"})
-}
-
-function move() {
-  var t = d3.event.translate,
-      s = d3.event.scale;
-  // t[0] = Math.min(width / 2 * (s - 1), Math.max(width / 2 * (1 - s), t[0]));
-  // t[1] = Math.min(height / 2 * (s - 1) + 230 * s, Math.max(height / 2 * (1 - s) - 230 * s, t[1]));
-  zoom.translate(t);
-  g.style("stroke-width", 1 / s).attr("transform", "translate(" + t + ")scale(" + s + ")");
-}
+      // re-render our visualization whenever the view changes
+      map.on("viewreset", function() {
+        render()
+      })
+      map.on("move", function() {
+        render()
+      })
+      // render our initial visualization
+      render()
+    })
 
 //Slider stuff.
 var confidence = document.getElementById('confValue');
