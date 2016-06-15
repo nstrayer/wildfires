@@ -1,4 +1,5 @@
-var confLevel = 95,
+var rawData,
+    confLevel = 95,
     sizeVal = 300,
     sizeDomain = [0,0],
     sizeRange = [3,25],
@@ -47,57 +48,60 @@ var energy = d3.scale.linear()
 var brightness = d3.scale.linear()
   .range(brightnessRange)
 
+function render() {
+    var dots = svg.selectAll("circle.dot")
+      .data(fires,function(d){ return d.bright_t31 + d.frp + d.acq_date})
+
+    dots.exit()
+        .transition().duration(1000)
+        .attr("r", 1)
+        .remove()
+
+    dots.enter().append("circle").classed("dot", true)
+        .attr("r", 1)
+        .attr("fill", function(d){return brightness(d.brightness)})
+        .attr("fill-opacity", "0.5")
+        .transition().duration(1000)
+        .attr("r", function(d){return energy(d.frp)}  );
+
+    dots
+    .attr({
+      cx: function(d) {
+        var x = project(d).x;
+        return x
+      },
+      cy: function(d) {
+        var y = project(d).y;
+        return y
+      },
+    })
+}
+
 d3.csv("data/fires.csv", function(err, data) {
 
-    var rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
-    fires       = dataClean(rawData, 95, 300)
+    rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
+    fires   = dataClean(rawData, confLevel, 300)
 
     //Calculate the scales for size and brightness
     energy.domain(    d3.extent(rawData, function(d){return +d.frp}))
     brightness.domain(d3.extent(rawData, function(d){return +d.brightness}))
 
-    var dots = svg.selectAll("circle.dot")
-        .data(fires)
-
-    dots.enter().append("circle").classed("dot", true)
-        .attr("r", 1)
-        .style({
-            fill: "#0082a3",
-            "fill-opacity": 0.6,
-            stroke: "#004d60",
-            "stroke-width": 1
-        })
-        .transition().duration(1000)
-        .attr("r", 6)
-
-      function render() {
-        console.log(fires[0], getLL(fires[0]), project(fires[0]))
-
-        dots
-        .attr({
-          cx: function(d) {
-            var x = project(d).x;
-            return x
-          },
-          cy: function(d) {
-            var y = project(d).y;
-            return y
-          },
-        })
-      }
-
-      // re-render our visualization whenever the view changes
-      map.on("viewreset", function() {
+    // re-render our visualization whenever the view changes
+    map.on("viewreset", function() {
         render()
-      })
-      map.on("move", function() {
+    })
+    map.on("move", function() {
         render()
-      })
-      // render our initial visualization
-      render()
+    })
+    // render our initial visualization
+    render()
     })
 
-//Slider stuff.
+// =========================================================
+// Slider stuff
+// =========================================================
+//Confidence Slider
+
 var confidence = document.getElementById('confValue');
 
 noUiSlider.create(confidence, {
@@ -121,18 +125,18 @@ confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what t
 
 confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
         confLevel = Math.round(+values,1)
-        updatePoints(rawData, confLevel, sizeVal)
-        console.log("conf level: " + confLevel + " size: " + sizeVal)
+        fires = dataClean(rawData, confLevel, sizeVal) //re-filter data
+        render() //draw it again.
     })
 
 
 // =========================================================
-// Slider stuff
+// Size Slider
 // =========================================================
 var size = document.getElementById('sizeValue');
 
 noUiSlider.create(size, {
-	start: 125,
+	start: 300,
     range: {
 		'min': [ 0 ],
 		'30%': [ 150 ],
@@ -144,7 +148,7 @@ noUiSlider.create(size, {
 });
 
 var tipHandles2 = size.getElementsByClassName('noUi-handle'),
-	   tooltips2 = [];
+	  tooltips2 = [];
 
 // Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
 for ( var i = 0; i < tipHandles2.length; i++ ){
@@ -153,13 +157,14 @@ for ( var i = 0; i < tipHandles2.length; i++ ){
 }
 
 size.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
-        tooltips2[handle].innerHTML = Math.round(values[handle],1);
-    })
+    tooltips2[handle].innerHTML = Math.round(values[handle],1);
+})
 
 size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
-        sizeVal = Math.round(+values,1)
-        updatePoints(rawData, confLevel, sizeVal )
-    })
+    sizeVal = Math.round(+values,1)
+    fires = dataClean(rawData, confLevel, sizeVal) //re-filter data
+    render()
+})
 
 //==================================================================================
 //Legend stuffs:
