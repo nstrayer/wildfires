@@ -7,7 +7,21 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     sizeDomain = [0,0],
     sizeRange = [3,25],
     brightnessRange = ["#4575b4", "#d73027"],
-    brightnessDomain = [0,0];
+    brightnessDomain = [0,0],
+    mapStyle = "mapbox://styles/mapbox/light-v9",
+    mapToken = "pk.eyJ1IjoibnN0cmF5ZXIiLCJhIjoiY2lwaGN3ZzJoMDE0YnRsbWRkbnhqaGZ2eSJ9.8cnHebILbPFV3oK_e_A8Fw";
+
+    mapboxgl.accessToken = mapToken;
+
+// Setup mapbox-gl map
+var map = new mapboxgl.Map({
+    container: 'viz', // container id
+    style: mapStyle,
+    center: [-0.1,51.5119112],
+    zoom: 13.5,
+})
+map.scrollZoom.disable()
+map.addControl(new mapboxgl.Navigation());
 
 var svg = d3.select("#viz").append("svg")
     .attr("width", width)
@@ -103,17 +117,17 @@ function ready(error, us, d){
     brightnessDomain = d3.extent(rawData, function(d){return +d.brightness})
     brightness.domain(brightnessDomain)
 
-    g.append("g")
-      .attr("id", "states")
-    .selectAll("path")
-      .data(topojson.feature(us, us.objects.states).features)
-    .enter().append("path")
-      .attr("d", path)
-
-    g.append("path")
-        .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
-        .attr("id", "state-borders")
-        .attr("d", path);
+    // g.append("g")
+    //   .attr("id", "states")
+    // .selectAll("path")
+    //   .data(topojson.feature(us, us.objects.states).features)
+    // .enter().append("path")
+    //   .attr("d", path)
+    //
+    // g.append("path")
+    //     .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+    //     .attr("id", "state-borders")
+    //     .attr("d", path);
 
     drawPoints(fires)
 
