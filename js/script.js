@@ -1,17 +1,12 @@
-var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
-    height = $(window).height(),
-    rawData,
-    confLevel = 95,
+var confLevel = 95,
     sizeVal = 300,
-    zScale = 1,
     sizeDomain = [0,0],
     sizeRange = [3,25],
     brightnessRange = ["#4575b4", "#d73027"],
     brightnessDomain = [0,0],
-    mapStyle = "mapbox://styles/mapbox/light-v9",
-    mapToken = "pk.eyJ1IjoibnN0cmF5ZXIiLCJhIjoiY2lwaGN3ZzJoMDE0YnRsbWRkbnhqaGZ2eSJ9.8cnHebILbPFV3oK_e_A8Fw";
+    mapStyle = "mapbox://styles/mapbox/light-v9";
 
-    mapboxgl.accessToken = mapToken;
+    mapboxgl.accessToken = "pk.eyJ1IjoibnN0cmF5ZXIiLCJhIjoiY2lwaGN3ZzJoMDE0YnRsbWRkbnhqaGZ2eSJ9.8cnHebILbPFV3oK_e_A8Fw";
 
 //Function to make sure the fire data is nice and proper.
 function dataClean(rawData, confCutOff, sizeCutOff){
@@ -33,7 +28,7 @@ function dataClean(rawData, confCutOff, sizeCutOff){
 var map = new mapboxgl.Map({
     container: 'viz', // container id
     style: mapStyle,
-    center: [ -95.977, 41.706],
+    center: [-95.977, 41.706],
     zoom: 3
 })
 map.scrollZoom.disable()
@@ -43,12 +38,8 @@ map.addControl(new mapboxgl.Navigation());
 var container = map.getCanvasContainer()
 var svg = d3.select(container).append("svg")
 
-function project(d) {
-      return map.project(getLL(d));
-    }
-function getLL(d) {
-  return new mapboxgl.LngLat(+d.longitude, +d.latitude)
-}
+function project(d) { return map.project(getLL(d)); }
+function getLL(d) { return new mapboxgl.LngLat(+d.longitude, +d.latitude) }
 
 var energy = d3.scale.linear()
   .range(sizeRange)
@@ -58,16 +49,13 @@ var brightness = d3.scale.linear()
 
 d3.csv("data/fires.csv", function(err, data) {
 
-    rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
-    fires = dataClean(rawData, 95, 300)
+    var rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
+    fires       = dataClean(rawData, 95, 300)
 
-    sizeDomain = d3.extent(rawData, function(d){return +d.frp})
-    energy.domain(sizeDomain)
+    //Calculate the scales for size and brightness
+    energy.domain(    d3.extent(rawData, function(d){return +d.frp}))
+    brightness.domain(d3.extent(rawData, function(d){return +d.brightness}))
 
-    brightnessDomain = d3.extent(rawData, function(d){return +d.brightness})
-    brightness.domain(brightnessDomain)
-
-    console.log(fires[0], getLL(fires[0]), project(fires[0]))
     var dots = svg.selectAll("circle.dot")
         .data(fires)
 
@@ -83,6 +71,8 @@ d3.csv("data/fires.csv", function(err, data) {
         .attr("r", 6)
 
       function render() {
+        console.log(fires[0], getLL(fires[0]), project(fires[0]))
+
         dots
         .attr({
           cx: function(d) {
@@ -135,6 +125,9 @@ confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what t
         console.log("conf level: " + confLevel + " size: " + sizeVal)
     })
 
+
+// =========================================================
+// Slider stuff
 // =========================================================
 var size = document.getElementById('sizeValue');
 
@@ -171,104 +164,104 @@ size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do w
 //==================================================================================
 //Legend stuffs:
 //==================================================================================
-
-var legendEdge = 140;
-function xChooser(i){
-    if(i == 0){
-        return legendEdge/2 - 35
-    } else {
-        return legendEdge/2 + 35
-    }
-}
-var legendOpen = false;
-
-var legend = svg.append("g")
-    .attr("class", "legend")
-    .attr("height", legendEdge)
-    .attr("width", legendEdge)
-    .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-    .on("click", function(){
-        if(!legendOpen){
-            d3.select(this).transition()
-                .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
-
-            d3.selectAll(".legendCover").attr("fill-opacity", 0)
-            legendOpen = true
-        } else {
-            d3.select(this).transition()
-                .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-                .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
-
-            legendOpen = false
-        }
-
-    })
-
-legend.append("rect")
-    .attr("height", legendEdge )
-    .attr("width", legendEdge)
-    .attr("rx", 15)
-    .attr("ry", 15)
-    .attr("fill", "#aaa")
-    .attr("fill-opacity", 0.9)
-    .style("stroke-width", "2px")
-    .style("stroke", "black")
-
-legend.selectAll(".legendCirc")
-    .data(sizeRange).enter()
-    .append("circle")
-    .attr("r", function(d){return d})
-    .attr("cx", function(d,i){return xChooser(i)})
-    .attr("cy", function(d){return (legendEdge * (2/5)) - d})
-
-legend.selectAll(".legendCirc")
-    .data(brightnessRange).enter()
-    .append("circle")
-    .attr("r", 20)
-    .attr("cx", function(d,i){return xChooser(i) })
-    .attr("cy", legendEdge * (4/5) - 17 )
-    .attr("fill", function(d){return d})
-
-//draw values for the legend:
-var sizeText = legend.selectAll(".sizeValue")
-    .attr("class", "sizeValue")
-    .data(sizeDomain).enter()
-    .append("text")
-    .attr("x", function(d,i){return xChooser(i) })
-    .attr("y", legendEdge * (2/5) + 15)
-    .text("")
-    .attr("text-anchor", "middle")
-    .attr("font-family", "optima")
-    .attr("font-size", 11)
-
-//draw values for the legend:
-var brightText = legend.selectAll(".brightnessValue")
-    .attr("class", "brightnessValue")
-    .data(brightnessDomain).enter()
-    .append("text")
-    .attr("x", function(d,i){return xChooser(i) })
-    .attr("y", legendEdge * (4/5) + 15 )
-    .text("")
-    .attr("text-anchor", "middle")
-    .attr("font-family", "optima")
-    .attr("font-size", 11)
-
-legend.append("rect")
-    .attr("class", "legendCover")
-    .attr("height", legendEdge )
-    .attr("width",  legendEdge )
-    .attr("rx", 15)
-    .attr("ry", 15)
-    .attr("fill", "#aaa")
-    .attr("fill-opacity", 1)
-    .style("stroke-width", "2px")
-    .style("stroke", "black")
-
-legend.append("text")
-    .attr("class", "legendCover")
-    .attr("x", legendEdge )
-    .attr("y", legendEdge + 65 )
-    .attr("text-anchor", "end")
-    .attr("font-size", 75)
-    .attr("font-family", "optima")
-    .text("Click for legend")
+//
+// var legendEdge = 140;
+// function xChooser(i){
+//     if(i == 0){
+//         return legendEdge/2 - 35
+//     } else {
+//         return legendEdge/2 + 35
+//     }
+// }
+// var legendOpen = false;
+//
+// var legend = svg.append("g")
+//     .attr("class", "legend")
+//     .attr("height", legendEdge)
+//     .attr("width", legendEdge)
+//     .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+//     .on("click", function(){
+//         if(!legendOpen){
+//             d3.select(this).transition()
+//                 .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
+//
+//             d3.selectAll(".legendCover").attr("fill-opacity", 0)
+//             legendOpen = true
+//         } else {
+//             d3.select(this).transition()
+//                 .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+//                 .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
+//
+//             legendOpen = false
+//         }
+//
+//     })
+//
+// legend.append("rect")
+//     .attr("height", legendEdge )
+//     .attr("width", legendEdge)
+//     .attr("rx", 15)
+//     .attr("ry", 15)
+//     .attr("fill", "#aaa")
+//     .attr("fill-opacity", 0.9)
+//     .style("stroke-width", "2px")
+//     .style("stroke", "black")
+//
+// legend.selectAll(".legendCirc")
+//     .data(sizeRange).enter()
+//     .append("circle")
+//     .attr("r", function(d){return d})
+//     .attr("cx", function(d,i){return xChooser(i)})
+//     .attr("cy", function(d){return (legendEdge * (2/5)) - d})
+//
+// legend.selectAll(".legendCirc")
+//     .data(brightnessRange).enter()
+//     .append("circle")
+//     .attr("r", 20)
+//     .attr("cx", function(d,i){return xChooser(i) })
+//     .attr("cy", legendEdge * (4/5) - 17 )
+//     .attr("fill", function(d){return d})
+//
+// //draw values for the legend:
+// var sizeText = legend.selectAll(".sizeValue")
+//     .attr("class", "sizeValue")
+//     .data(sizeDomain).enter()
+//     .append("text")
+//     .attr("x", function(d,i){return xChooser(i) })
+//     .attr("y", legendEdge * (2/5) + 15)
+//     .text("")
+//     .attr("text-anchor", "middle")
+//     .attr("font-family", "optima")
+//     .attr("font-size", 11)
+//
+// //draw values for the legend:
+// var brightText = legend.selectAll(".brightnessValue")
+//     .attr("class", "brightnessValue")
+//     .data(brightnessDomain).enter()
+//     .append("text")
+//     .attr("x", function(d,i){return xChooser(i) })
+//     .attr("y", legendEdge * (4/5) + 15 )
+//     .text("")
+//     .attr("text-anchor", "middle")
+//     .attr("font-family", "optima")
+//     .attr("font-size", 11)
+//
+// legend.append("rect")
+//     .attr("class", "legendCover")
+//     .attr("height", legendEdge )
+//     .attr("width",  legendEdge )
+//     .attr("rx", 15)
+//     .attr("ry", 15)
+//     .attr("fill", "#aaa")
+//     .attr("fill-opacity", 1)
+//     .style("stroke-width", "2px")
+//     .style("stroke", "black")
+//
+// legend.append("text")
+//     .attr("class", "legendCover")
+//     .attr("x", legendEdge )
+//     .attr("y", legendEdge + 65 )
+//     .attr("text-anchor", "end")
+//     .attr("font-size", 75)
+//     .attr("font-family", "optima")
+//     .text("Click for legend")

@@ -1,26 +1,22 @@
 #viz {
-  position:absolute;
-  width: 65%;
+      position:absolute;
+      width: 65%;;
+      height: 100%;
+      right: 0;
+}
+
+svg {
+  position: absolute;
+  width: 100%;;
   height: 100%;
-  right: 0;
 }
 
 #title {
     height: 75px;
-    /*color: white;*/
 }
-
-svg {
-    position:absolute;
-    width: 65%;
-    height: 100%;
-    right: 0;
-}
-
 
 h1 {
     font-family: optima;
-    /*color: white;*/
     padding-left: 15px;
 }
 
