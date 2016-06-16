@@ -1,4 +1,4 @@
-var rawData,
+var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
     confLevel = 95,
     sizeVal = 300,
     sizeDomain = [0,0],
@@ -32,8 +32,8 @@ var map = new mapboxgl.Map({
     center: [-95.977, 41.706],
     zoom: 3
 })
-map.scrollZoom.disable()
-map.addControl(new mapboxgl.Navigation());
+// map.scrollZoom.disable()
+// map.addControl(new mapboxgl.Navigation());
 
 // Setup our svg layer that we can manipulate with d3
 var container = map.getCanvasContainer()
@@ -83,8 +83,13 @@ d3.csv("data/fires.csv", function(err, data) {
     fires   = dataClean(rawData, confLevel, 300)
 
     //Calculate the scales for size and brightness
-    energy.domain(    d3.extent(rawData, function(d){return +d.frp}))
-    brightness.domain(d3.extent(rawData, function(d){return +d.brightness}))
+    //We have to save the extents for the legend.
+    brightnessDomain = d3.extent(rawData, function(d){return +d.frp})
+    energy.domain(brightnessDomain)
+    sizeDomain = d3.extent(rawData, function(d){return +d.brightness})
+    brightness.domain(sizeDomain)
+
+    drawLegend() //draw our legend.
 
     // re-render our visualization whenever the view changes
     map.on("viewreset", function() {
@@ -169,6 +174,125 @@ size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do w
 //==================================================================================
 //Legend stuffs:
 //==================================================================================
+function drawLegend(){
+
+    var sideLength = 150;
+
+    //set up the data
+    var legendData = [
+        {brightnessDomain: brightnessDomain[0], brightnessRange: brightnessRange[0],
+        sizeDomain: sizeDomain[0], sizeRange: sizeRange[0]
+        },
+        {brightnessDomain: brightnessDomain[1], brightnessRange: brightnessRange[1],
+        sizeDomain: sizeDomain[1], sizeRange: sizeRange[1]
+        }];
+
+    var legend = svg.append("g")
+        .attr("class", "legend")
+        .attr("height", sideLength)
+        .attr("width", sideLength)
+        .attr("transform", "translate(" + (width - 180) +  "," + 15 + ")scale(1)")
+        // .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+        .on("click", clicked)
+
+    legend.append("rect")
+        .attr("height", sideLength)
+        .attr("width", sideLength)
+        .attr("rx", 15)
+        .attr("ry", 15)
+        .attr("fill", "#aaa")
+        .attr("fill-opacity", 0.9)
+        .style("stroke-width", "2px")
+        .style("stroke", "black")
+
+    legend.selectAll("legendPoint")
+        .data(legendData)
+        .enter().append("g")
+        .attr("transform", function(d,i){
+            return "translate(" + xChooser(i) +  "," + sideLength/2 + ")"
+        })
+        .each(function(d,i){
+
+            d3.select(this).append("line")
+                .attr("y1",  (50 - 3))
+                .attr("y2", -(50 - 3))
+                .style({
+                    "stroke":"black",
+                    "stroke-width": 1,
+                    "fill-opacity": 0.5
+                })
+
+            d3.select(this).append("circle")
+                .attr("r",   d.sizeRange)
+                .attr("fill", d.brightnessRange)
+
+            d3.select(this).append("text")
+                .attr("y", 60)
+                .attr("text-anchor", "middle")
+                .text(d.brightnessDomain + " K")
+
+            d3.select(this).append("text")
+                .attr("y", -50)
+                .attr("text-anchor", "middle")
+                .text(d.sizeDomain + " MW")
+
+        })
+
+    function xChooser(i){
+        return i == 0 ? sideLength/2 - 40 : sideLength/2 + 40
+    }
+}
+
+
+
+function clicked(){
+    //add expand functionality here.
+    if(!legendOpen){
+        d3.select(this).transition()
+            .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
+
+        d3.selectAll(".legendCover").attr("fill-opacity", 0)
+        legendOpen = true
+    } else {
+        d3.select(this).transition()
+            .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+            .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
+
+        legendOpen = false
+    }
+}
+
+
+//
+// legend.append("rect")
+//     .attr("height", 100)
+//     .attr("width", 100)
+//     .attr("rx", 15)
+//     .attr("ry", 15)
+//     .attr("fill", "#aaa")
+//     .attr("fill-opacity", 0.9)
+//     .style("stroke-width", "2px")
+//     .style("stroke", "black")
+//
+//
+//
+// function clicked(){
+//     //add expand functionality here.
+//     if(!legendOpen){
+//         d3.select(this).transition()
+//             .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
+//
+//         d3.selectAll(".legendCover").attr("fill-opacity", 0)
+//         legendOpen = true
+//     } else {
+//         d3.select(this).transition()
+//             .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+//             .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
+//
+//         legendOpen = false
+//     }
+// }
+//
 //
 // var legendEdge = 140;
 // function xChooser(i){
@@ -185,22 +309,7 @@ size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do w
 //     .attr("height", legendEdge)
 //     .attr("width", legendEdge)
 //     .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-//     .on("click", function(){
-//         if(!legendOpen){
-//             d3.select(this).transition()
-//                 .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
-//
-//             d3.selectAll(".legendCover").attr("fill-opacity", 0)
-//             legendOpen = true
-//         } else {
-//             d3.select(this).transition()
-//                 .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-//                 .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
-//
-//             legendOpen = false
-//         }
-//
-//     })
+//     .on("click", function(){})
 //
 // legend.append("rect")
 //     .attr("height", legendEdge )
