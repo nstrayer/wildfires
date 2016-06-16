@@ -188,11 +188,11 @@ function drawLegend(){
         }];
 
     var legend = svg.append("g")
-        .attr("class", "legend")
+        .attr("class", "legend closed")
         .attr("height", sideLength)
         .attr("width", sideLength)
-        .attr("transform", "translate(" + (width - 180) +  "," + 15 + ")scale(1)")
-        // .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+        // .attr("transform", "translate(" + (width - 180) +  "," + 15 + ")scale(1)")
+        .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
         .on("click", clicked)
 
     legend.append("rect")
@@ -209,7 +209,7 @@ function drawLegend(){
         .data(legendData)
         .enter().append("g")
         .attr("transform", function(d,i){
-            return "translate(" + xChooser(i) +  "," + sideLength/2 + ")"
+            return "translate(" + (i == 0 ? sideLength/2 - 40 : sideLength/2 + 40) +  "," + sideLength/2 + ")"
         })
         .each(function(d,i){
 
@@ -235,147 +235,42 @@ function drawLegend(){
                 .attr("y", -50)
                 .attr("text-anchor", "middle")
                 .text(d.sizeDomain + " MW")
-
         })
 
-    function xChooser(i){
-        return i == 0 ? sideLength/2 - 40 : sideLength/2 + 40
-    }
+    legend.append("rect")
+        .attr("class", "legendCover")
+        .attr("height", sideLength )
+        .attr("width",  sideLength )
+        .attr("rx", 15)
+        .attr("ry", 15)
+        .attr("fill", "#aaa")
+        .attr("fill-opacity", 1)
+        .style("stroke-width", "2px")
+        .style("stroke", "black")
+
+    legend.append("text")
+        .attr("class", "legendCover")
+        .attr("x", sideLength )
+        .attr("y", sideLength + 65 )
+        .attr("text-anchor", "end")
+        .attr("font-size", 75)
+        .attr("font-family", "optima")
+        .text("Click for legend")
+
 }
 
 
-
-function clicked(){
-    //add expand functionality here.
-    if(!legendOpen){
+function clicked(d,i){
+    if(d3.select(this).classed("closed")){
         d3.select(this).transition()
             .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
 
         d3.selectAll(".legendCover").attr("fill-opacity", 0)
-        legendOpen = true
+        d3.select(this).classed("closed", false) //set legend to open
     } else {
         d3.select(this).transition()
             .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
             .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
-
-        legendOpen = false
+        d3.select(this).classed("closed", true)
     }
 }
-
-
-//
-// legend.append("rect")
-//     .attr("height", 100)
-//     .attr("width", 100)
-//     .attr("rx", 15)
-//     .attr("ry", 15)
-//     .attr("fill", "#aaa")
-//     .attr("fill-opacity", 0.9)
-//     .style("stroke-width", "2px")
-//     .style("stroke", "black")
-//
-//
-//
-// function clicked(){
-//     //add expand functionality here.
-//     if(!legendOpen){
-//         d3.select(this).transition()
-//             .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
-//
-//         d3.selectAll(".legendCover").attr("fill-opacity", 0)
-//         legendOpen = true
-//     } else {
-//         d3.select(this).transition()
-//             .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-//             .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
-//
-//         legendOpen = false
-//     }
-// }
-//
-//
-// var legendEdge = 140;
-// function xChooser(i){
-//     if(i == 0){
-//         return legendEdge/2 - 35
-//     } else {
-//         return legendEdge/2 + 35
-//     }
-// }
-// var legendOpen = false;
-//
-// var legend = svg.append("g")
-//     .attr("class", "legend")
-//     .attr("height", legendEdge)
-//     .attr("width", legendEdge)
-//     .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-//     .on("click", function(){})
-//
-// legend.append("rect")
-//     .attr("height", legendEdge )
-//     .attr("width", legendEdge)
-//     .attr("rx", 15)
-//     .attr("ry", 15)
-//     .attr("fill", "#aaa")
-//     .attr("fill-opacity", 0.9)
-//     .style("stroke-width", "2px")
-//     .style("stroke", "black")
-//
-// legend.selectAll(".legendCirc")
-//     .data(sizeRange).enter()
-//     .append("circle")
-//     .attr("r", function(d){return d})
-//     .attr("cx", function(d,i){return xChooser(i)})
-//     .attr("cy", function(d){return (legendEdge * (2/5)) - d})
-//
-// legend.selectAll(".legendCirc")
-//     .data(brightnessRange).enter()
-//     .append("circle")
-//     .attr("r", 20)
-//     .attr("cx", function(d,i){return xChooser(i) })
-//     .attr("cy", legendEdge * (4/5) - 17 )
-//     .attr("fill", function(d){return d})
-//
-// //draw values for the legend:
-// var sizeText = legend.selectAll(".sizeValue")
-//     .attr("class", "sizeValue")
-//     .data(sizeDomain).enter()
-//     .append("text")
-//     .attr("x", function(d,i){return xChooser(i) })
-//     .attr("y", legendEdge * (2/5) + 15)
-//     .text("")
-//     .attr("text-anchor", "middle")
-//     .attr("font-family", "optima")
-//     .attr("font-size", 11)
-//
-// //draw values for the legend:
-// var brightText = legend.selectAll(".brightnessValue")
-//     .attr("class", "brightnessValue")
-//     .data(brightnessDomain).enter()
-//     .append("text")
-//     .attr("x", function(d,i){return xChooser(i) })
-//     .attr("y", legendEdge * (4/5) + 15 )
-//     .text("")
-//     .attr("text-anchor", "middle")
-//     .attr("font-family", "optima")
-//     .attr("font-size", 11)
-//
-// legend.append("rect")
-//     .attr("class", "legendCover")
-//     .attr("height", legendEdge )
-//     .attr("width",  legendEdge )
-//     .attr("rx", 15)
-//     .attr("ry", 15)
-//     .attr("fill", "#aaa")
-//     .attr("fill-opacity", 1)
-//     .style("stroke-width", "2px")
-//     .style("stroke", "black")
-//
-// legend.append("text")
-//     .attr("class", "legendCover")
-//     .attr("x", legendEdge )
-//     .attr("y", legendEdge + 65 )
-//     .attr("text-anchor", "end")
-//     .attr("font-size", 75)
-//     .attr("font-family", "optima")
-//     .text("Click for legend")
