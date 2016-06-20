@@ -9,6 +9,19 @@ var width = parseInt(d3.select("#viz").style("width").slice(0, -2)),
 
     mapboxgl.accessToken = "pk.eyJ1IjoibnN0cmF5ZXIiLCJhIjoiY2lwaGN3ZzJoMDE0YnRsbWRkbnhqaGZ2eSJ9.8cnHebILbPFV3oK_e_A8Fw";
 
+
+
+var a = location.href;
+var fire = a.substring(a.indexOf("?")+1).replace(/\//g, '');
+
+var cntr = [-95.977, 41.706],
+    zm = 3;
+
+if(fire == "sherpa"){
+    cntr = [-119.985, 34.49],
+    zm = 11;
+}
+
 //Function to make sure the fire data is nice and proper.
 function dataClean(rawData, confCutOff, sizeCutOff){
     sureFires = []
@@ -29,8 +42,8 @@ function dataClean(rawData, confCutOff, sizeCutOff){
 var map = new mapboxgl.Map({
     container: 'viz', // container id
     style: mapStyle,
-    center: [-95.977, 41.706],
-    zoom: 3
+    center: cntr,
+    zoom: zm
 })
 // map.scrollZoom.disable()
 // map.addControl(new mapboxgl.Navigation());
