@@ -3,13 +3,14 @@ setwd("/Users/207439/Desktop/wildfires")
 # install.packages("rgeos", type = "source")
 # install.packages("geojsonio")
 # install.packages("ggmap")
-
+# install.packages("gridExtra")
 library(geojsonio)
 library(rgdal)
 library(geojsonio)
 library(jsonlite)
 library(ggplot2)
 library(ggmap)
+library(gridExtra)
 library(dplyr)
 
 # d <- read.csv("data/fires.csv") %>%
@@ -39,17 +40,33 @@ ggmap(myMap) +
         axis.ticks.x=element_blank())
 
 
-#Using the USGS perims
-setwd("/Users/207439/Desktop/wildfires/data/ca_erskine_20160624_2101_dd83")
-shpData <- readOGR(dsn=".", layer="ca_erskine_20160624_2101_dd83")
-proj4string(shpData) <- CRS("+proj=longlat +ellps=WGS84")  # set coord sys
-# to change to correct projection:
-shpData <- spTransform(shpData, CRS("+proj=longlat +datum=WGS84")) 
+plot_perim = function(directory, date){
+  #Using the USGS perims
+  setwd(directory)
+  #Find the shape file in the directory. 
+  shapeFile <- list.files(pattern = "\\.shp$") %>%
+    strsplit(".shp")
+  
+  shpData <- readOGR(dsn=".", layer=shapeFile[[1]])
+  proj4string(shpData) <- CRS("+proj=longlat +ellps=WGS84")  # set coord sys
+  # to change to correct projection:
+  shpData <- spTransform(shpData, CRS("+proj=longlat +datum=WGS84")) 
+  
+  map <- ggmap(myMap) +  geom_polygon(aes(x = long, y = lat, group=group),
+                                          data = shpData, color ="white", fill ="orangered4",
+                                          alpha = .4, size = .2) +
+    labs(title = date) + 
+    theme(axis.title.y=element_blank(),axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          axis.title.x=element_blank(),axis.text.x=element_blank(),
+          axis.ticks.x=element_blank())
+  return(map)
+}
 
+june_24 <- plot_perim("/Users/207439/Desktop/wildfires/data/june_24", "June 24")
+june_25 <- plot_perim("/Users/207439/Desktop/wildfires/data/june_25", "June 25")
+june_26 <- plot_perim("/Users/207439/Desktop/wildfires/data/june_26", "June 26")
+june_27 <- plot_perim("/Users/207439/Desktop/wildfires/data/june_26", "June 27")
+june_28 <- plot_perim("/Users/207439/Desktop/wildfires/data/june_26", "June 28")
 
-
-ggmap(myMap) +  geom_polygon(aes(x = long, y = lat, group=group),
-                             data = shpData, color ="white", fill ="orangered4",
-                             alpha = .4, size = .2) +
-  labs(title = "2016-06-27")
-
+grid.arrange(june_24,june_25,june_26,june_27,june_28, nrow=2)
