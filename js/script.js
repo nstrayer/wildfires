@@ -48,242 +48,296 @@ var map = new mapboxgl.Map({
 // map.scrollZoom.disable()
 // map.addControl(new mapboxgl.Navigation());
 
-// Setup our svg layer that we can manipulate with d3
-var container = map.getCanvasContainer()
-var svg = d3.select(container).append("svg")
+map.on('load', function(){
 
-function project(d) { return map.project(getLL(d)); }
-function getLL(d) { return new mapboxgl.LngLat(+d.longitude, +d.latitude) }
+    // Add a new source from our GeoJSON data and set the
+    // 'cluster' option to true.
+    map.addSource("fires", {
+        type: "geojson",
+        data: "myfile.geojson",
+        cluster: true,
+        clusterMaxZoom: 15, // Max zoom to cluster points on
+        clusterRadius: 20 // Use small cluster radius for the heatmap look
+    });
 
-var energy = d3.scale.linear()
-  .range(sizeRange)
+    // Use the earthquakes source to create four layers:
+    // three for each cluster category, and one for non-clustered markers
 
-var brightness = d3.scale.linear()
-  .range(brightnessRange)
+    // Each point range gets a different fill color.
+    var layers = [
+        [0, 'green'],
+        [1, 'orange'],
+        [2, 'red']
+    ];
 
-function render() {
-    var dots = svg.selectAll("circle.dot")
-      .data(fires,function(d){ return d.bright_t31 + d.frp + d.acq_date})
+    layers.forEach(function (layer, i) {
+        map.addLayer({
+            "id": "cluster-" + i,
+            "type": "circle",
+            "source": "fires",
+            "paint": {
+                "circle-color": layer[1],
+                "circle-radius": 70,
+                "circle-blur": 1 // blur the circles to get a heatmap look
+            },
+            "filter": i === layers.length - 1 ?
+                [">=", "point_count", layer[0]] :
+                ["all",
+                    [">=", "point_count", layer[0]],
+                    ["<", "point_count", layers[i + 1][0]]]
+        }, 'waterway-label');
+    });
 
-    dots.exit()
-        .transition().duration(1000)
-        .attr("r", 1)
-        .remove()
-
-    dots.enter().append("circle").classed("dot", true)
-        .attr("r", 1)
-        .attr("fill", function(d){return brightness(d.brightness)})
-        .attr("fill-opacity", "0.5")
-        .transition().duration(1000)
-        .attr("r", function(d){return energy(d.frp)}  );
-
-    dots
-    .attr({
-      cx: function(d) {
-        var x = project(d).x;
-        return x
-      },
-      cy: function(d) {
-        var y = project(d).y;
-        return y
-      },
-    })
-}
-
-d3.csv("data/fires.csv", function(err, data) {
-
-    rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
-    fires   = dataClean(rawData, confLevel, 300)
-
-    //Calculate the scales for size and brightness
-    //We have to save the extents for the legend.
-    brightnessDomain = d3.extent(rawData, function(d){return +d.frp})
-    energy.domain(brightnessDomain)
-    sizeDomain = d3.extent(rawData, function(d){return +d.brightness})
-    brightness.domain(sizeDomain)
-
-    drawLegend() //draw our legend.
-
-    // re-render our visualization whenever the view changes
-    map.on("viewreset", function() {
-        render()
-    })
-    map.on("move", function() {
-        render()
-    })
-    // render our initial visualization
-    render()
-    })
-
-// =========================================================
-// Slider stuff
-// =========================================================
-//Confidence Slider
-
-var confidence = document.getElementById('confValue');
-
-noUiSlider.create(confidence, {
-	start: 95,
-	range: { min: 0, max: 100 },
-	pips: { mode: 'values', values: [5, 50, 95], density: 4 }
-});
-
-var tipHandles = confidence.getElementsByClassName('noUi-handle'),
-	   tooltips = [];
-
-// Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
-for ( var i = 0; i < tipHandles.length; i++ ){
-	tooltips[i] = document.createElement('div');
-	tipHandles[i].appendChild(tooltips[i]);
-}
-
-confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
-        tooltips[handle].innerHTML = Math.round(values[handle],1) + "%";
-    })
-
-confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
-        confLevel = Math.round(+values,1)
-        fires = dataClean(rawData, confLevel, sizeVal) //re-filter data
-        render() //draw it again.
-    })
-
-
-// =========================================================
-// Size Slider
-// =========================================================
-var size = document.getElementById('sizeValue');
-
-noUiSlider.create(size, {
-	start: 300,
-    range: {
-		'min': [ 0 ],
-		'30%': [ 150 ],
-        '50%': [ 350 ],
-		'70%': [ 500 ],
-		'max': [ 6900 ]
-	},
-	pips:  { mode: 'values', values: [15, 350, 6800], density: 4 }
-});
-
-var tipHandles2 = size.getElementsByClassName('noUi-handle'),
-	  tooltips2 = [];
-
-// Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
-for ( var i = 0; i < tipHandles2.length; i++ ){
-	tooltips2[i] = document.createElement('div');
-	tipHandles2[i].appendChild(tooltips2[i]);
-}
-
-size.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
-    tooltips2[handle].innerHTML = Math.round(values[handle],1);
-})
-
-size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
-    sizeVal = Math.round(+values,1)
-    fires = dataClean(rawData, confLevel, sizeVal) //re-filter data
-    render()
-})
-
-//==================================================================================
-//Legend stuffs:
-//==================================================================================
-function drawLegend(){
-
-    var sideLength = 150;
-
-    //set up the data
-    var legendData = [
-        {brightnessDomain: brightnessDomain[0], brightnessRange: brightnessRange[0],
-        sizeDomain: sizeDomain[0], sizeRange: sizeRange[0]
+     map.addLayer({
+        "id": "non-cluster-markers",
+        "type": "circle",
+        "source": "fires",
+        "paint": {
+            "circle-color": 'rgba(0,255,0,0.5)',
+            "circle-radius": 20,
+            "circle-blur": 1
         },
-        {brightnessDomain: brightnessDomain[1], brightnessRange: brightnessRange[1],
-        sizeDomain: sizeDomain[1], sizeRange: sizeRange[1]
-        }];
+        "filter": ["!=", "cluster", true]
+    }, 'waterway-label');
 
-    var legend = svg.append("g")
-        .attr("class", "legend closed")
-        .attr("height", sideLength)
-        .attr("width", sideLength)
-        // .attr("transform", "translate(" + (width - 180) +  "," + 15 + ")scale(1)")
-        .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-        .on("click", clicked)
+});
 
-    legend.append("rect")
-        .attr("height", sideLength)
-        .attr("width", sideLength)
-        .attr("rx", 15)
-        .attr("ry", 15)
-        .attr("fill", "#aaa")
-        .attr("fill-opacity", 0.9)
-        .style("stroke-width", "2px")
-        .style("stroke", "black")
+// // Setup our svg layer that we can manipulate with d3
+// var container = map.getCanvasContainer()
+// var svg = d3.select(container).append("svg")
 
-    legend.selectAll("legendPoint")
-        .data(legendData)
-        .enter().append("g")
-        .attr("transform", function(d,i){
-            return "translate(" + (i == 0 ? sideLength/2 - 40 : sideLength/2 + 40) +  "," + sideLength/2 + ")"
-        })
-        .each(function(d,i){
+// function project(d) { return map.project(getLL(d)); }
+// function getLL(d) { return new mapboxgl.LngLat(+d.longitude, +d.latitude) }
 
-            d3.select(this).append("line")
-                .attr("y1",  (50 - 3))
-                .attr("y2", -(50 - 3))
-                .style({
-                    "stroke":"black",
-                    "stroke-width": 1,
-                    "fill-opacity": 0.5
-                })
+// var energy = d3.scale.linear()
+//   .range(sizeRange)
 
-            d3.select(this).append("circle")
-                .attr("r",   d.sizeRange)
-                .attr("fill", d.brightnessRange)
+// var brightness = d3.scale.linear()
+//   .range(brightnessRange)
 
-            d3.select(this).append("text")
-                .attr("y", 60)
-                .attr("text-anchor", "middle")
-                .text(d.brightnessDomain + " K")
+// function render() {
+//     var dots = svg.selectAll("circle.dot")
+//       .data(fires,function(d){ return d.bright_t31 + d.frp + d.acq_date})
 
-            d3.select(this).append("text")
-                .attr("y", -50)
-                .attr("text-anchor", "middle")
-                .text(d.sizeDomain + " MW")
-        })
+//     dots.exit()
+//         .transition().duration(1000)
+//         .attr("r", 1)
+//         .remove()
 
-    legend.append("rect")
-        .attr("class", "legendCover")
-        .attr("height", sideLength )
-        .attr("width",  sideLength )
-        .attr("rx", 15)
-        .attr("ry", 15)
-        .attr("fill", "#aaa")
-        .attr("fill-opacity", 1)
-        .style("stroke-width", "2px")
-        .style("stroke", "black")
+//     dots.enter().append("circle").classed("dot", true)
+//         .attr("r", 1)
+//         .attr("fill", function(d){return brightness(d.brightness)})
+//         .attr("fill-opacity", "0.5")
+//         .transition().duration(1000)
+//         .attr("r", function(d){return energy(d.frp)}  );
 
-    legend.append("text")
-        .attr("class", "legendCover")
-        .attr("x", sideLength )
-        .attr("y", sideLength + 65 )
-        .attr("text-anchor", "end")
-        .attr("font-size", 75)
-        .attr("font-family", "optima")
-        .text("Click for legend")
+//     dots
+//     .attr({
+//       cx: function(d) {
+//         var x = project(d).x;
+//         return x
+//       },
+//       cy: function(d) {
+//         var y = project(d).y;
+//         return y
+//       },
+//     })
+// }
 
-}
+// d3.csv("data/fires.csv", function(err, data) {
+
+//     rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
+//     fires   = dataClean(rawData, confLevel, 300)
+
+//     //Calculate the scales for size and brightness
+//     //We have to save the extents for the legend.
+//     brightnessDomain = d3.extent(rawData, function(d){return +d.frp})
+//     energy.domain(brightnessDomain)
+//     sizeDomain = d3.extent(rawData, function(d){return +d.brightness})
+//     brightness.domain(sizeDomain)
+
+//     drawLegend() //draw our legend.
+
+//     // re-render our visualization whenever the view changes
+//     map.on("viewreset", function() {
+//         render()
+//     })
+//     map.on("move", function() {
+//         render()
+//     })
+//     // render our initial visualization
+//     render()
+//     })
+
+// // =========================================================
+// // Slider stuff
+// // =========================================================
+// //Confidence Slider
+
+// var confidence = document.getElementById('confValue');
+
+// noUiSlider.create(confidence, {
+// 	start: 95,
+// 	range: { min: 0, max: 100 },
+// 	pips: { mode: 'values', values: [5, 50, 95], density: 4 }
+// });
+
+// var tipHandles = confidence.getElementsByClassName('noUi-handle'),
+// 	   tooltips = [];
+
+// // Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
+// for ( var i = 0; i < tipHandles.length; i++ ){
+// 	tooltips[i] = document.createElement('div');
+// 	tipHandles[i].appendChild(tooltips[i]);
+// }
+
+// confidence.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
+//         tooltips[handle].innerHTML = Math.round(values[handle],1) + "%";
+//     })
+
+// confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
+//         confLevel = Math.round(+values,1)
+//         fires = dataClean(rawData, confLevel, sizeVal) //re-filter data
+//         render() //draw it again.
+//     })
 
 
-function clicked(d,i){
-    if(d3.select(this).classed("closed")){
-        d3.select(this).transition()
-            .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
+// // =========================================================
+// // Size Slider
+// // =========================================================
+// var size = document.getElementById('sizeValue');
 
-        d3.selectAll(".legendCover").attr("fill-opacity", 0)
-        d3.select(this).classed("closed", false) //set legend to open
-    } else {
-        d3.select(this).transition()
-            .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
-            .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
-        d3.select(this).classed("closed", true)
-    }
-}
+// noUiSlider.create(size, {
+// 	start: 300,
+//     range: {
+// 		'min': [ 0 ],
+// 		'30%': [ 150 ],
+//         '50%': [ 350 ],
+// 		'70%': [ 500 ],
+// 		'max': [ 6900 ]
+// 	},
+// 	pips:  { mode: 'values', values: [15, 350, 6800], density: 4 }
+// });
+
+// var tipHandles2 = size.getElementsByClassName('noUi-handle'),
+// 	  tooltips2 = [];
+
+// // Add divs to the slider handles.I hate how clunky this is. Maybe submit a pr to the repo?
+// for ( var i = 0; i < tipHandles2.length; i++ ){
+// 	tooltips2[i] = document.createElement('div');
+// 	tipHandles2[i].appendChild(tooltips2[i]);
+// }
+
+// size.noUiSlider.on('update', function(values, handle, unencoded){ //what to do when the slider is moved.
+//     tooltips2[handle].innerHTML = Math.round(values[handle],1);
+// })
+
+// size.noUiSlider.on('change', function(values, handle, unencoded){ //what to do when the slider is dropped.
+//     sizeVal = Math.round(+values,1)
+//     fires = dataClean(rawData, confLevel, sizeVal) //re-filter data
+//     render()
+// })
+
+// //==================================================================================
+// //Legend stuffs:
+// //==================================================================================
+// function drawLegend(){
+
+//     var sideLength = 150;
+
+//     //set up the data
+//     var legendData = [
+//         {brightnessDomain: brightnessDomain[0], brightnessRange: brightnessRange[0],
+//         sizeDomain: sizeDomain[0], sizeRange: sizeRange[0]
+//         },
+//         {brightnessDomain: brightnessDomain[1], brightnessRange: brightnessRange[1],
+//         sizeDomain: sizeDomain[1], sizeRange: sizeRange[1]
+//         }];
+
+//     var legend = svg.append("g")
+//         .attr("class", "legend closed")
+//         .attr("height", sideLength)
+//         .attr("width", sideLength)
+//         // .attr("transform", "translate(" + (width - 180) +  "," + 15 + ")scale(1)")
+//         .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+//         .on("click", clicked)
+
+//     legend.append("rect")
+//         .attr("height", sideLength)
+//         .attr("width", sideLength)
+//         .attr("rx", 15)
+//         .attr("ry", 15)
+//         .attr("fill", "#aaa")
+//         .attr("fill-opacity", 0.9)
+//         .style("stroke-width", "2px")
+//         .style("stroke", "black")
+
+//     legend.selectAll("legendPoint")
+//         .data(legendData)
+//         .enter().append("g")
+//         .attr("transform", function(d,i){
+//             return "translate(" + (i == 0 ? sideLength/2 - 40 : sideLength/2 + 40) +  "," + sideLength/2 + ")"
+//         })
+//         .each(function(d,i){
+
+//             d3.select(this).append("line")
+//                 .attr("y1",  (50 - 3))
+//                 .attr("y2", -(50 - 3))
+//                 .style({
+//                     "stroke":"black",
+//                     "stroke-width": 1,
+//                     "fill-opacity": 0.5
+//                 })
+
+//             d3.select(this).append("circle")
+//                 .attr("r",   d.sizeRange)
+//                 .attr("fill", d.brightnessRange)
+
+//             d3.select(this).append("text")
+//                 .attr("y", 60)
+//                 .attr("text-anchor", "middle")
+//                 .text(d.brightnessDomain + " K")
+
+//             d3.select(this).append("text")
+//                 .attr("y", -50)
+//                 .attr("text-anchor", "middle")
+//                 .text(d.sizeDomain + " MW")
+//         })
+
+//     legend.append("rect")
+//         .attr("class", "legendCover")
+//         .attr("height", sideLength )
+//         .attr("width",  sideLength )
+//         .attr("rx", 15)
+//         .attr("ry", 15)
+//         .attr("fill", "#aaa")
+//         .attr("fill-opacity", 1)
+//         .style("stroke-width", "2px")
+//         .style("stroke", "black")
+
+//     legend.append("text")
+//         .attr("class", "legendCover")
+//         .attr("x", sideLength )
+//         .attr("y", sideLength + 65 )
+//         .attr("text-anchor", "end")
+//         .attr("font-size", 75)
+//         .attr("font-family", "optima")
+//         .text("Click for legend")
+
+// }
+
+
+// function clicked(d,i){
+//     if(d3.select(this).classed("closed")){
+//         d3.select(this).transition()
+//             .attr("transform", "translate(" + (width - 180) +  "," + 20 + ")scale(1)")
+
+//         d3.selectAll(".legendCover").attr("fill-opacity", 0)
+//         d3.select(this).classed("closed", false) //set legend to open
+//     } else {
+//         d3.select(this).transition()
+//             .attr("transform", "translate(" + (width - 50) +  "," + 20 + ")scale(0.2)")
+//             .each("end", function(){d3.selectAll(".legendCover").attr("fill-opacity", 1)})
+//         d3.select(this).classed("closed", true)
+//     }
+// }
