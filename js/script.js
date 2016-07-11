@@ -93,7 +93,7 @@ function render() {
 d3.csv("data/fires.csv", function(err, data) {
 
     rawData = dataClean(data, 0, 1); //We gotta remove the data that has zero size. So not really "rawData" but whatevs.
-    fires   = dataClean(rawData, confLevel, 300)
+    fires   = dataClean(rawData, confLevel, 10)
 
     //Calculate the scales for size and brightness
     //We have to save the extents for the legend.
@@ -154,7 +154,7 @@ confidence.noUiSlider.on('change', function(values, handle, unencoded){ //what t
 var size = document.getElementById('sizeValue');
 
 noUiSlider.create(size, {
-	start: 300,
+	start: 10,
     range: {
 		'min': [ 0 ],
 		'30%': [ 150 ],
