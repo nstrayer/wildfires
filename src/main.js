@@ -2,7 +2,7 @@
 
 import {conventions} from 'd3-jetpack';
 import {select, extent} from 'd3';
-import {scaleLinear, scaleSequential} from 'd3-scale';
+import {scaleLinear,scaleLog, scaleSequential} from 'd3-scale';
 import {interpolateRdBu} from 'd3-scale-chromatic';
 import {csv} from 'd3-fetch';
 import {setupMap} from './setupMap';
@@ -28,8 +28,8 @@ csv(proxyUrl + dataURL, (d) => ({
    .filter(d => d.confidence !== 'low' && d.power > 100);
 
   const powerScale = scaleLinear()
-    .domain(extent(fireData, (d) => d.power))
-    .range([3,15]);
+    .domain([50,2500])
+    .range([5,25]);
     
   const colorScale = scaleLinear()
     .domain(extent(fireData, (d) => d.brightness))
@@ -66,7 +66,7 @@ csv(proxyUrl + dataURL, (d) => ({
       .append('circle.fire')
       .st({
         fill: (d) => colorScale(d.brightness),
-        fillOpacity: 0.6,
+        fillOpacity: 0.5,
       })
       .merge(fires)
       .at({

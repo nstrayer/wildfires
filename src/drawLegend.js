@@ -7,6 +7,13 @@ export function drawLegend(c, powerScale, colorScale){
     .title('Power (MW)')
     .scale(powerScale)
     .shape('circle')
+    .cells([
+      50, 
+      250, 
+      500, 
+      1000,
+      2000,
+    ])
     .shapePadding(15)
     .labelOffset(20)
     .orient('vertical');
@@ -34,12 +41,23 @@ export function drawLegend(c, powerScale, colorScale){
   const legendG = c.svg.selectAppend("g.legends")
     .translate([c.width - 150, c.height]);
     
+  legendG.selectAppend('rect')
+    .at({
+      x: -70,
+      y: -15,
+      width: 300,
+      height: 400,
+      fill: 'lightgrey',
+      fillOpacity: 0.7,
+      rx: 15,
+      ry: 15,
+    });
   const sizeG = legendG.selectAppend('g.sizeLegend')
-    .translate([-50,0])
+    .translate([-60,0])
     .call(sizeLegend);
     
   const colorG = legendG.selectAppend('g.colorLegend')
-    .translate([50,0])
+    .translate([60,0])
     .call(colorLegend);
     
   return legendG;

@@ -50390,7 +50390,7 @@ var _d3SvgLegend = require('d3-svg-legend');
 
 function drawLegend(c, powerScale, colorScale) {
 
-  var sizeLegend = (0, _d3SvgLegend.legendSize)().title('Power (MW)').scale(powerScale).shape('circle').shapePadding(15).labelOffset(20).orient('vertical');
+  var sizeLegend = (0, _d3SvgLegend.legendSize)().title('Power (MW)').scale(powerScale).shape('circle').cells([50, 250, 500, 1000, 2000]).shapePadding(15).labelOffset(20).orient('vertical');
 
   var colorMax = colorScale.domain()[1];
   var colorMin = colorScale.domain()[0];
@@ -50400,9 +50400,19 @@ function drawLegend(c, powerScale, colorScale) {
 
   var legendG = c.svg.selectAppend("g.legends").translate([c.width - 150, c.height]);
 
-  var sizeG = legendG.selectAppend('g.sizeLegend').translate([-50, 0]).call(sizeLegend);
+  legendG.selectAppend('rect').at({
+    x: -70,
+    y: -15,
+    width: 300,
+    height: 400,
+    fill: 'lightgrey',
+    fillOpacity: 0.7,
+    rx: 15,
+    ry: 15
+  });
+  var sizeG = legendG.selectAppend('g.sizeLegend').translate([-60, 0]).call(sizeLegend);
 
-  var colorG = legendG.selectAppend('g.colorLegend').translate([50, 0]).call(colorLegend);
+  var colorG = legendG.selectAppend('g.colorLegend').translate([60, 0]).call(colorLegend);
 
   return legendG;
 } // draw a legend based on our scales for color and size
@@ -50471,9 +50481,7 @@ var dataURL = 'https://firms.modaps.eosdis.nasa.gov/active_fire/viirs/text/VNP14
     return d.confidence !== 'low' && d.power > 100;
   });
 
-  var powerScale = (0, _d3Scale.scaleLinear)().domain((0, _d.extent)(fireData, function (d) {
-    return d.power;
-  })).range([3, 15]);
+  var powerScale = (0, _d3Scale.scaleLinear)().domain([50, 2500]).range([5, 25]);
 
   var colorScale = (0, _d3Scale.scaleLinear)().domain((0, _d.extent)(fireData, function (d) {
     return d.brightness;
@@ -50510,7 +50518,7 @@ var dataURL = 'https://firms.modaps.eosdis.nasa.gov/active_fire/viirs/text/VNP14
       fill: function fill(d) {
         return colorScale(d.brightness);
       },
-      fillOpacity: 0.6
+      fillOpacity: 0.5
     }).merge(fires).at({
       cx: function cx(d) {
         return scale([d.lon, d.lat])[0];
