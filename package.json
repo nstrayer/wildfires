@@ -1,0 +1,38 @@
+{
+  "name": "wildfires",
+  "version": "1.0.0",
+  "description": "A visualization of current wildfires around the world.",
+  "main": "main.js",
+  "scripts": {
+    "build": "watchify src/main.js -t [ babelify --presets [ es2015 ] ] --outfile bundle.js",
+    "smallify": "browserify -g uglifyify src/main.js -t [ babelify --presets [ es2015 ] ] --outfile bundle.min.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nstrayer/wildfires.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nstrayer/wildfires/issues"
+  },
+  "homepage": "https://github.com/nstrayer/wildfires#readme",
+  "dependencies": {
+    "d3": "^4.10.2",
+    "d3-fetch": "0.0.2",
+    "d3-geo": "^1.6.4",
+    "d3-jetpack": "^2.0.7",
+    "d3-scale": "^1.0.6",
+    "d3-scale-chromatic": "^1.1.1",
+    "d3-svg-legend": "^2.24.1",
+    "mapbox-gl": "^0.39.1"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babelify": "^7.3.0",
+    "browserify": "^14.4.0",
+    "uglifyify": "^4.0.3",
+    "watchify": "^3.9.0"
+  }
+}
