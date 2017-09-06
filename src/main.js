@@ -25,7 +25,7 @@ csv(proxyUrl + dataURL, (d) => ({
   select("#loading").remove();
   
   const fireData = fireDataFull
-   .filter(d => d.confidence !== 'low' && d.power > 100);
+   .filter(d => d.confidence !== 'low' && d.power > 50);
 
   const powerScale = scaleLinear()
     .domain([50,2500])

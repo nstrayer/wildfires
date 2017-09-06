@@ -50478,7 +50478,7 @@ var dataURL = 'https://firms.modaps.eosdis.nasa.gov/active_fire/viirs/text/VNP14
   (0, _d.select)("#loading").remove();
 
   var fireData = fireDataFull.filter(function (d) {
-    return d.confidence !== 'low' && d.power > 100;
+    return d.confidence !== 'low' && d.power > 50;
   });
 
   var powerScale = (0, _d3Scale.scaleLinear)().domain([50, 2500]).range([5, 25]);
